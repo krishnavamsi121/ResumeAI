@@ -46,7 +46,7 @@ ResumeAI/
 4. **Run the server**
 
    ```bash
-   uvicorn backend.main:app --reload --host 0.0.0.0 --port 5000
+   uvicorn backend.main:app --reload --host 0.0.0.0 --port 5001
    ```
 
    Or use the run script:
@@ -57,7 +57,7 @@ ResumeAI/
 
 5. **Open in browser**
 
-   http://localhost:5000
+   http://localhost:5001
 
 ## Usage
 
@@ -73,7 +73,7 @@ ResumeAI/
 | `ANTHROPIC_API_KEY` | Required for tailoring (or set in the app UI). |
 | `RESUMEAI_DEFAULT_MODEL` | Default model, e.g. `claude-sonnet-4-20250514`. |
 | `RESUMEAI_MAX_RESUME_CHARS` | Max resume characters sent to the API (default 12000). |
-| `RESUMEAI_MAX_JD_CHARS` | Max job description characters (default 5000). |
+| `RESUMEAI_MAX_JD_CHARS` | Max job description characters (default 5001). |
 | `RESUMEAI_HOST` / `RESUMEAI_PORT` | Server bind address and port. |
 
 ## Development
