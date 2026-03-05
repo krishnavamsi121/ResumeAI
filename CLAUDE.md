@@ -32,7 +32,7 @@ From repo root:
 python3 -m venv venv && source venv/bin/activate
 pip install -r requirements.txt
 export ANTHROPIC_API_KEY=sk-ant-...
-uvicorn backend.main:app --reload --host 0.0.0.0 --port 5000
+uvicorn backend.main:app --reload --host 0.0.0.0 --port 5001
 ```
 
 Then open http://localhost:5000 . The API key can be set in `.env` or in the app UI (stored in browser localStorage).
