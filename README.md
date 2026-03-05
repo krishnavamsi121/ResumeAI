@@ -83,4 +83,4 @@ ResumeAI/
 
 ## License
 
-MIT.
+KRISH.
