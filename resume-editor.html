@@ -1,0 +1,1751 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ResumeAI — Tailor Your Resume</title>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/mammoth/1.6.0/mammoth.browser.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<style>
+/* ═══════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════ */
+:root {
+  --bg:       #FAFAF8;
+  --surface:  #FFFFFF;
+  --surface2: #F4F3F0;
+  --surface3: #ECEAE5;
+  --ink:      #1A1916;
+  --ink2:     #6B6860;
+  --ink3:     #9B9890;
+  --border:   #E2DDD6;
+  --border2:  #D0C9BF;
+
+  --blue:     #2563EB;
+  --blue-bg:  #EFF4FF;
+  --blue-bd:  #BFCFFD;
+  --green:    #16A34A;
+  --green-bg: #F0FDF4;
+  --green-bd: #BBF7D0;
+  --amber:    #D97706;
+  --amber-bg: #FFFBEB;
+  --red:      #DC2626;
+  --red-bg:   #FEF2F2;
+
+  --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+  --shadow:    0 4px 12px rgba(0,0,0,0.07), 0 2px 6px rgba(0,0,0,0.04);
+  --shadow-lg: 0 12px 32px rgba(0,0,0,0.09), 0 4px 12px rgba(0,0,0,0.05);
+
+  --radius-sm: 6px;
+  --radius:    10px;
+  --radius-lg: 14px;
+  --radius-xl: 18px;
+}
+
+/* ═══════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { font-size: 16px; -webkit-font-smoothing: antialiased; }
+body {
+  font-family: 'Inter', system-ui, sans-serif;
+  background: var(--bg);
+  color: var(--ink);
+  min-height: 100vh;
+  line-height: 1.5;
+}
+button { font-family: inherit; cursor: pointer; border: none; background: none; }
+textarea, input { font-family: inherit; }
+a { color: var(--blue); text-decoration: none; }
+
+/* ═══════════════════════════════════════
+   LAYOUT
+═══════════════════════════════════════ */
+.app-shell {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* ── Top nav ── */
+.topnav {
+  height: 56px;
+  border-bottom: 1px solid var(--border);
+  background: rgba(255,255,255,0.95);
+  backdrop-filter: blur(10px);
+  position: sticky; top: 0; z-index: 200;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px;
+}
+.brand {
+  display: flex; align-items: center; gap: 10px;
+  font-weight: 700; font-size: 15px; letter-spacing: -0.3px; color: var(--ink);
+}
+.brand-icon {
+  width: 30px; height: 30px; background: var(--ink); border-radius: 8px;
+  display: flex; align-items: center; justify-content: center;
+  color: white; font-family: 'Instrument Serif', serif; font-size: 16px;
+}
+.nav-right { display: flex; align-items: center; gap: 12px; }
+.api-key-btn {
+  display: flex; align-items: center; gap: 6px;
+  padding: 6px 12px; border-radius: var(--radius-sm);
+  font-size: 12px; font-weight: 500; color: var(--ink2);
+  border: 1px solid var(--border); background: var(--surface2);
+  transition: all 0.15s;
+}
+.api-key-btn:hover { border-color: var(--border2); color: var(--ink); }
+.api-key-dot {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--ink3); flex-shrink: 0;
+}
+.api-key-dot.set { background: var(--green); }
+
+/* ── Step bar ── */
+.stepbar {
+  height: 48px; border-bottom: 1px solid var(--border);
+  background: var(--surface); position: sticky; top: 56px; z-index: 190;
+  display: flex; align-items: stretch;
+  padding: 0 16px;
+  overflow-x: auto; scrollbar-width: none;
+}
+.stepbar::-webkit-scrollbar { display: none; }
+.step-item {
+  display: flex; align-items: center; gap: 8px;
+  padding: 0 16px; white-space: nowrap;
+  font-size: 12.5px; font-weight: 500;
+  color: var(--ink3);
+  border-bottom: 2px solid transparent;
+  transition: all 0.15s;
+  cursor: default; user-select: none;
+}
+.step-item.clickable { cursor: pointer; }
+.step-item.clickable:hover { color: var(--ink2); background: var(--surface2); }
+.step-item.active { color: var(--blue); border-bottom-color: var(--blue); }
+.step-item.done { color: var(--green); }
+.step-item.done.clickable:hover { background: var(--green-bg); }
+.step-badge {
+  width: 20px; height: 20px; border-radius: 50%;
+  border: 1.5px solid currentColor;
+  display: flex; align-items: center; justify-content: center;
+  font-size: 10px; font-weight: 700; flex-shrink: 0;
+  font-family: 'JetBrains Mono', monospace;
+  transition: all 0.15s;
+}
+.step-item.active .step-badge, .step-item.done .step-badge {
+  background: currentColor; color: white;
+}
+.step-divider { align-self: center; color: var(--border2); margin: 0 2px; font-size: 14px; }
+
+/* ── Main content ── */
+.page-content {
+  flex: 1; max-width: 1200px; margin: 0 auto;
+  width: 100%; padding: 36px 24px 80px;
+}
+
+/* ── Panels ── */
+.panel { display: none; }
+.panel.active {
+  display: block;
+  animation: fadeUp 0.28s cubic-bezier(0.16,1,0.3,1);
+}
+@keyframes fadeUp {
+  from { opacity: 0; transform: translateY(10px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
+
+/* ═══════════════════════════════════════
+   COMPONENTS
+═══════════════════════════════════════ */
+
+/* ── Page header ── */
+.page-header { margin-bottom: 28px; }
+.page-eyebrow {
+  font-size: 11px; font-weight: 600; letter-spacing: 1.2px;
+  text-transform: uppercase; color: var(--amber);
+  margin-bottom: 6px;
+}
+.page-title {
+  font-family: 'Instrument Serif', serif;
+  font-size: clamp(24px, 3.5vw, 36px);
+  line-height: 1.15; letter-spacing: -0.5px; color: var(--ink);
+}
+.page-title em { font-style: italic; color: var(--blue); }
+.page-desc { font-size: 14px; color: var(--ink2); margin-top: 6px; line-height: 1.6; }
+
+/* ── Cards ── */
+.card {
+  background: var(--surface); border: 1px solid var(--border);
+  border-radius: var(--radius-lg); overflow: hidden;
+  box-shadow: var(--shadow-sm);
+}
+.card-head {
+  padding: 12px 16px; background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 8px;
+  font-size: 13px; font-weight: 600; color: var(--ink);
+}
+.card-head .badge-pill {
+  margin-left: auto; font-size: 10px; font-weight: 500;
+  padding: 2px 7px; border-radius: 20px; background: var(--blue-bg);
+  color: var(--blue); border: 1px solid var(--blue-bd);
+}
+
+/* ── Buttons ── */
+.btn {
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 9px 18px; border-radius: var(--radius);
+  font-size: 13.5px; font-weight: 600; line-height: 1;
+  cursor: pointer; border: none; transition: all 0.14s;
+  white-space: nowrap;
+}
+.btn-primary {
+  background: var(--blue); color: white;
+  box-shadow: 0 1px 3px rgba(37,99,235,0.3), 0 1px 2px rgba(37,99,235,0.2);
+}
+.btn-primary:hover { background: #1d4ed8; box-shadow: 0 4px 12px rgba(37,99,235,0.35); transform: translateY(-1px); }
+.btn-primary:active { transform: translateY(0); }
+.btn-primary:disabled { opacity: 0.5; cursor: not-allowed; transform: none; box-shadow: none; }
+.btn-secondary {
+  background: var(--surface2); color: var(--ink);
+  border: 1px solid var(--border);
+}
+.btn-secondary:hover { background: var(--surface3); border-color: var(--border2); }
+.btn-success {
+  background: var(--green-bg); color: var(--green);
+  border: 1px solid var(--green-bd);
+}
+.btn-success:hover { background: #dcfce7; }
+.btn-danger-soft {
+  background: var(--red-bg); color: var(--red);
+  border: 1px solid #fecaca;
+}
+.btn-lg { padding: 12px 24px; font-size: 15px; border-radius: var(--radius-lg); }
+.btn-block { width: 100%; justify-content: center; }
+.btn-row { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+
+/* ── Form elements ── */
+.form-label {
+  display: block; font-size: 12px; font-weight: 600;
+  color: var(--ink2); margin-bottom: 6px; letter-spacing: 0.2px;
+}
+.form-input {
+  width: 100%; border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 9px 12px; font-size: 13.5px; color: var(--ink);
+  background: var(--surface); outline: none; transition: border-color 0.15s;
+}
+.form-input:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
+.form-input::placeholder { color: var(--ink3); }
+
+.textarea-bare {
+  width: 100%; border: none; outline: none; resize: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px; line-height: 1.7; color: var(--ink);
+  background: transparent; padding: 16px;
+}
+.textarea-bare::placeholder { color: var(--ink3); }
+
+/* ── Tags ── */
+.tag {
+  display: inline-flex; align-items: center; gap: 4px;
+  font-size: 11px; font-weight: 500;
+  padding: 3px 8px; border-radius: 20px;
+  font-family: 'JetBrains Mono', monospace;
+}
+.tag-green { background: var(--green-bg); color: var(--green); border: 1px solid var(--green-bd); }
+.tag-blue  { background: var(--blue-bg);  color: var(--blue);  border: 1px solid var(--blue-bd); }
+.tag-amber { background: var(--amber-bg); color: var(--amber); border: 1px solid #fde68a; }
+.tag-gray  { background: var(--surface2); color: var(--ink2);  border: 1px solid var(--border); }
+
+/* ── Alert ── */
+.alert {
+  display: flex; align-items: flex-start; gap: 10px;
+  padding: 12px 14px; border-radius: var(--radius);
+  font-size: 13px; line-height: 1.5;
+}
+.alert-warn { background: var(--amber-bg); border: 1px solid #fde68a; color: #92400e; }
+.alert-error { background: var(--red-bg); border: 1px solid #fecaca; color: #991b1b; }
+.alert-info { background: var(--blue-bg); border: 1px solid var(--blue-bd); color: #1e40af; }
+.alert-success { background: var(--green-bg); border: 1px solid var(--green-bd); color: #14532d; }
+
+/* ── Toast ── */
+.toast {
+  position: fixed; bottom: 24px; left: 50%;
+  transform: translateX(-50%) translateY(12px);
+  background: var(--ink); color: white;
+  padding: 10px 20px; border-radius: 30px;
+  font-size: 13px; font-weight: 500;
+  opacity: 0; transition: all 0.25s; z-index: 9999;
+  pointer-events: none; max-width: 400px; text-align: center;
+  box-shadow: var(--shadow-lg);
+}
+.toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+.toast.success { background: #15803d; }
+.toast.error   { background: var(--red); }
+.toast.warning { background: var(--amber); }
+
+/* ── Modal ── */
+.modal-backdrop {
+  display: none; position: fixed; inset: 0;
+  background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);
+  z-index: 500; align-items: center; justify-content: center; padding: 20px;
+}
+.modal-backdrop.open { display: flex; }
+.modal {
+  background: var(--surface); border-radius: var(--radius-xl);
+  width: 100%; max-width: 480px;
+  box-shadow: var(--shadow-lg); animation: modalIn 0.2s ease;
+}
+@keyframes modalIn { from{opacity:0;transform:scale(0.96)} to{opacity:1;transform:scale(1)} }
+.modal-head {
+  padding: 20px 24px 16px;
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; justify-content: space-between;
+}
+.modal-head h3 { font-size: 16px; font-weight: 700; }
+.modal-close {
+  width: 28px; height: 28px; border-radius: 6px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--ink2); font-size: 18px; cursor: pointer;
+  background: var(--surface2); border: 1px solid var(--border);
+}
+.modal-close:hover { background: var(--surface3); }
+.modal-body { padding: 20px 24px; }
+.modal-footer { padding: 16px 24px; border-top: 1px solid var(--border); display: flex; gap: 10px; justify-content: flex-end; }
+
+/* ═══════════════════════════════════════
+   STEP 1: UPLOAD
+═══════════════════════════════════════ */
+.upload-layout {
+  display: grid; grid-template-columns: 1fr 1fr;
+  gap: 20px; margin-bottom: 20px;
+}
+@media (max-width: 768px) { .upload-layout { grid-template-columns: 1fr; } }
+
+.drop-zone {
+  position: relative; border: 2px dashed var(--border2);
+  border-radius: var(--radius-lg); background: var(--surface);
+  padding: 36px 24px; text-align: center; cursor: pointer;
+  transition: all 0.2s;
+}
+.drop-zone:hover, .drop-zone.dragover {
+  border-color: var(--blue); background: var(--blue-bg);
+}
+.drop-zone input {
+  position: absolute; inset: 0; opacity: 0; cursor: pointer;
+  width: 100%; height: 100%;
+}
+.drop-icon { font-size: 32px; margin-bottom: 12px; }
+.drop-title { font-size: 14px; font-weight: 600; margin-bottom: 4px; }
+.drop-sub { font-size: 12.5px; color: var(--ink2); }
+.drop-formats { display: flex; gap: 4px; justify-content: center; margin-top: 12px; flex-wrap: wrap; }
+.fmt-tag {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 10px; padding: 2px 7px; border-radius: 4px;
+  border: 1px solid var(--border); color: var(--ink3); background: var(--surface2);
+}
+
+.divider-or {
+  display: flex; align-items: center; gap: 10px;
+  font-size: 11px; font-weight: 500; color: var(--ink3);
+  font-family: 'JetBrains Mono', monospace;
+  margin: 12px 0;
+}
+.divider-or::before, .divider-or::after {
+  content: ''; flex: 1; height: 1px; background: var(--border);
+}
+
+/* file strip */
+.file-strip {
+  display: none;
+  align-items: center; gap: 12px;
+  padding: 10px 14px; margin-bottom: 12px;
+  background: var(--green-bg); border: 1px solid var(--green-bd);
+  border-radius: var(--radius);
+}
+.file-strip.visible { display: flex; }
+.file-strip-icon { font-size: 22px; flex-shrink: 0; }
+.file-strip-info { flex: 1; min-width: 0; }
+.file-strip-name { font-size: 13px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.file-strip-meta { font-size: 11px; color: var(--ink2); font-family: 'JetBrains Mono', monospace; margin-top: 1px; }
+.file-strip-remove {
+  width: 24px; height: 24px; border-radius: 4px; flex-shrink: 0;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--red); background: var(--red-bg); border: 1px solid #fecaca;
+  cursor: pointer; font-size: 12px; transition: all 0.13s;
+}
+.file-strip-remove:hover { background: #fee2e2; }
+
+.char-count {
+  font-size: 11px; color: var(--ink3);
+  font-family: 'JetBrains Mono', monospace;
+  padding: 6px 14px; text-align: right;
+  border-top: 1px solid var(--border);
+}
+
+/* ═══════════════════════════════════════
+   STEP 2: PROCESSING
+═══════════════════════════════════════ */
+.processing-center {
+  display: flex; flex-direction: column; align-items: center;
+  justify-content: center; min-height: 480px; gap: 24px; text-align: center;
+}
+.spinner {
+  width: 48px; height: 48px;
+  border: 3px solid var(--border2);
+  border-top-color: var(--blue);
+  border-radius: 50%;
+  animation: spin 0.7s linear infinite;
+}
+@keyframes spin { to { transform: rotate(360deg); } }
+.proc-title { font-family: 'Instrument Serif', serif; font-size: 26px; letter-spacing: -0.3px; }
+.proc-sub { font-size: 13px; color: var(--ink2); font-family: 'JetBrains Mono', monospace; margin-top: 4px; }
+.proc-log {
+  width: 100%; max-width: 520px;
+  background: #0F1117; border-radius: var(--radius-lg);
+  padding: 16px 20px; text-align: left;
+  min-height: 140px;
+}
+.proc-log-line {
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12px; line-height: 2;
+  animation: logSlide 0.22s ease;
+}
+@keyframes logSlide { from{opacity:0;transform:translateX(-5px)} to{opacity:1;transform:translateX(0)} }
+.log-pending { color: #fbbf24; }
+.log-done    { color: #6ee7b7; }
+.log-error   { color: #fca5a5; }
+
+/* ═══════════════════════════════════════
+   STEP 3: PREVIEW
+═══════════════════════════════════════ */
+.review-layout {
+  display: grid;
+  grid-template-columns: 1fr 340px;
+  gap: 20px; align-items: start;
+}
+@media (max-width: 900px) { .review-layout { grid-template-columns: 1fr; } }
+
+/* Resume document preview */
+.resume-doc {
+  background: white; border: 1px solid var(--border);
+  border-radius: var(--radius-lg); box-shadow: var(--shadow-lg);
+  overflow: hidden;
+}
+.resume-doc-toolbar {
+  padding: 10px 16px; background: var(--surface2);
+  border-bottom: 1px solid var(--border);
+  display: flex; align-items: center; gap: 10px;
+}
+.doc-toolbar-title { font-size: 13px; font-weight: 600; flex: 1; }
+.doc-toolbar-actions { display: flex; gap: 6px; }
+
+/* Tab switcher */
+.tab-bar {
+  display: flex; border-bottom: 1px solid var(--border);
+  background: var(--surface2);
+}
+.tab-btn {
+  padding: 9px 16px; font-size: 12.5px; font-weight: 500;
+  color: var(--ink2); border-bottom: 2px solid transparent;
+  cursor: pointer; transition: all 0.13s;
+}
+.tab-btn:hover { color: var(--ink); background: rgba(0,0,0,0.03); }
+.tab-btn.active { color: var(--blue); border-bottom-color: var(--blue); background: white; }
+
+.tab-panel { display: none; }
+.tab-panel.active { display: block; }
+
+/* Formatted resume view */
+.resume-formatted {
+  padding: 40px 48px;
+  font-size: 13.5px; line-height: 1.7;
+  min-height: 500px; max-height: 720px;
+  overflow-y: auto; color: var(--ink);
+}
+@media (max-width: 600px) { .resume-formatted { padding: 24px; } }
+
+.rf-name    { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }
+.rf-contact { font-size: 12px; color: var(--ink2); margin-bottom: 20px; line-height: 1.6; }
+.rf-section { margin-bottom: 20px; }
+.rf-section-head {
+  font-size: 10px; font-weight: 700; letter-spacing: 1.8px;
+  text-transform: uppercase; color: var(--blue);
+  padding-bottom: 5px; margin-bottom: 10px;
+  border-bottom: 1.5px solid var(--blue-bd);
+}
+.rf-job-title { font-size: 14px; font-weight: 600; }
+.rf-job-meta  { font-size: 12px; color: var(--ink2); margin-bottom: 6px; }
+.rf-bullets   { padding-left: 16px; }
+.rf-bullets li { font-size: 13px; margin-bottom: 3px; line-height: 1.55; }
+.rf-paragraph { font-size: 13px; line-height: 1.65; color: var(--ink); }
+.rf-skills-grid { display: flex; flex-wrap: wrap; gap: 5px; }
+.rf-skill-chip {
+  font-size: 11.5px; padding: 3px 9px; border-radius: 5px;
+  background: var(--surface2); border: 1px solid var(--border);
+  color: var(--ink2);
+}
+.rf-edu-item { margin-bottom: 8px; }
+.rf-edu-degree { font-size: 13.5px; font-weight: 600; }
+.rf-edu-school { font-size: 12.5px; color: var(--ink2); }
+
+/* Raw editable view */
+.resume-raw {
+  padding: 0;
+}
+.resume-raw textarea {
+  width: 100%; min-height: 560px; max-height: 720px;
+  border: none; outline: none; resize: none;
+  font-family: 'JetBrains Mono', monospace;
+  font-size: 12.5px; line-height: 1.75;
+  color: var(--ink); background: white;
+  padding: 28px 32px;
+}
+
+/* Sidebar */
+.sidebar { display: flex; flex-direction: column; gap: 16px; position: sticky; top: 120px; }
+
+/* Score widget */
+.score-widget {
+  display: flex; flex-direction: column; align-items: center;
+  padding: 20px 16px; text-align: center;
+}
+.score-ring-wrap { position: relative; width: 96px; height: 96px; margin-bottom: 12px; }
+.score-ring-wrap svg { transform: rotate(-90deg); }
+.score-ring-inner {
+  position: absolute; inset: 0;
+  display: flex; flex-direction: column; align-items: center; justify-content: center;
+}
+.score-number { font-size: 26px; font-weight: 700; transition: color 0.5s; }
+.score-sublabel { font-size: 9px; font-weight: 600; letter-spacing: 1.5px; color: var(--ink3); text-transform: uppercase; }
+.score-caption { font-size: 12.5px; color: var(--ink2); line-height: 1.4; }
+
+/* Skills breakdown */
+.skill-section-label {
+  font-size: 11px; font-weight: 600; color: var(--ink3); letter-spacing: 0.3px;
+  text-transform: uppercase; margin-bottom: 7px;
+}
+.skill-chips { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 12px; }
+
+/* Change log */
+.change-entry {
+  display: flex; align-items: flex-start; gap: 8px;
+  padding: 9px 0; border-bottom: 1px solid var(--border);
+  font-size: 12.5px; line-height: 1.5;
+}
+.change-entry:last-child { border: none; padding-bottom: 0; }
+.change-bullet {
+  width: 6px; height: 6px; border-radius: 50%;
+  background: var(--blue); flex-shrink: 0; margin-top: 5px;
+}
+
+/* Re-modify */
+.remod-textarea {
+  width: 100%; min-height: 90px;
+  border: 1px solid var(--border); border-radius: var(--radius);
+  padding: 10px 12px; font-size: 13px; color: var(--ink);
+  background: var(--surface); resize: vertical; outline: none;
+  transition: border-color 0.15s; font-family: inherit; line-height: 1.55;
+}
+.remod-textarea:focus { border-color: var(--blue); box-shadow: 0 0 0 3px rgba(37,99,235,0.08); }
+
+/* history chips */
+.history-chip {
+  display: inline-block; font-size: 11px; padding: 3px 9px;
+  border-radius: 20px; background: var(--surface2); border: 1px solid var(--border);
+  color: var(--ink2); cursor: pointer; margin: 2px;
+  transition: all 0.13s;
+}
+.history-chip:hover { border-color: var(--blue); color: var(--blue); }
+
+/* ═══════════════════════════════════════
+   STEP 4: EXPORT
+═══════════════════════════════════════ */
+.export-layout { max-width: 720px; margin: 0 auto; }
+.export-hero { text-align: center; padding: 32px 0 40px; }
+.export-hero-emoji { font-size: 48px; margin-bottom: 16px; }
+.export-hero h2 {
+  font-family: 'Instrument Serif', serif;
+  font-size: 32px; letter-spacing: -0.5px; margin-bottom: 8px;
+}
+.export-hero p { font-size: 14px; color: var(--ink2); }
+
+.export-formats { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 24px; }
+.export-card {
+  background: var(--surface); border: 1.5px solid var(--border);
+  border-radius: var(--radius-lg); padding: 20px;
+  cursor: pointer; transition: all 0.15s;
+  display: flex; align-items: center; gap: 14px;
+}
+.export-card:hover { border-color: var(--blue); box-shadow: var(--shadow); transform: translateY(-1px); }
+.export-card:active { transform: translateY(0); }
+.export-card-icon {
+  width: 44px; height: 44px; border-radius: var(--radius);
+  display: flex; align-items: center; justify-content: center;
+  font-size: 20px; flex-shrink: 0;
+}
+.export-card h4 { font-size: 13.5px; font-weight: 700; margin-bottom: 3px; }
+.export-card p { font-size: 11.5px; color: var(--ink2); }
+
+.export-status {
+  display: none; padding: 12px 16px;
+  border-radius: var(--radius); font-size: 13px; font-weight: 500;
+  text-align: center; margin-bottom: 16px;
+}
+.export-status.show { display: block; }
+
+/* ─── scrollbars ─── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--border2); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: var(--ink3); }
+</style>
+</head>
+<body>
+<div class="app-shell">
+
+<!-- ── Top Nav ── -->
+<nav class="topnav">
+  <div class="brand">
+    <div class="brand-icon">R</div>
+    ResumeAI
+  </div>
+  <div class="nav-right">
+    <button class="api-key-btn" id="api-key-btn" onclick="openApiModal()">
+      <span class="api-key-dot" id="api-dot"></span>
+      <span id="api-key-label">Set API Key</span>
+    </button>
+  </div>
+</nav>
+
+<!-- ── Step Bar ── -->
+<div class="stepbar">
+  <div class="step-item active" id="si1" onclick="tryNav(1)">
+    <div class="step-badge">1</div> Upload &amp; Input
+  </div>
+  <div class="step-divider">›</div>
+  <div class="step-item" id="si2">
+    <div class="step-badge">2</div> AI Tailoring
+  </div>
+  <div class="step-divider">›</div>
+  <div class="step-item" id="si3" onclick="tryNav(3)">
+    <div class="step-badge">3</div> Review &amp; Refine
+  </div>
+  <div class="step-divider">›</div>
+  <div class="step-item" id="si4" onclick="tryNav(4)">
+    <div class="step-badge">4</div> Export
+  </div>
+</div>
+
+<!-- ── Content ── -->
+<main class="page-content">
+
+<!-- ════════════ PANEL 1: INPUT ════════════ -->
+<div class="panel active" id="panel1">
+  <div class="page-header">
+    <div class="page-eyebrow">Step 1 of 4</div>
+    <h1 class="page-title">Upload resume &amp; <em>job description</em></h1>
+    <p class="page-desc">Upload a PDF, Word doc, or paste text. Then add the job description — we'll tailor every section.</p>
+  </div>
+
+  <div id="api-warning" class="alert alert-warn" style="margin-bottom:18px;display:none">
+    <span>⚠️</span>
+    <span>No API key set. <button onclick="openApiModal()" style="font-weight:600;color:#92400e;text-decoration:underline;background:none;border:none;cursor:pointer;font-size:inherit">Add your Anthropic API key</button> to enable AI tailoring.</span>
+  </div>
+
+  <div class="upload-layout">
+    <!-- Left col: resume -->
+    <div>
+      <div class="drop-zone" id="drop-zone">
+        <input type="file" id="file-input" accept=".pdf,.doc,.docx,.txt">
+        <div class="drop-icon">📄</div>
+        <div class="drop-title">Drop your resume file here</div>
+        <div class="drop-sub">or click to browse</div>
+        <div class="drop-formats">
+          <span class="fmt-tag">PDF</span>
+          <span class="fmt-tag">DOCX</span>
+          <span class="fmt-tag">DOC</span>
+          <span class="fmt-tag">TXT</span>
+        </div>
+      </div>
+
+      <div class="file-strip" id="file-strip">
+        <span class="file-strip-icon" id="fs-icon">📄</span>
+        <div class="file-strip-info">
+          <div class="file-strip-name" id="fs-name">—</div>
+          <div class="file-strip-meta" id="fs-meta">—</div>
+        </div>
+        <button class="file-strip-remove" onclick="clearFile()" title="Remove">✕</button>
+      </div>
+
+      <div class="divider-or">or paste as text</div>
+
+      <div class="card">
+        <div class="card-head">
+          ✏️ Resume Text
+          <span class="badge-pill" id="resume-char-badge">0 chars</span>
+        </div>
+        <textarea class="textarea-bare" id="resume-text" style="height:260px"
+          placeholder="JANE SMITH
+jane@email.com  |  (555) 000-0000  |  LinkedIn: linkedin.com/in/jane
+
+SUMMARY
+Software engineer with 5 years building production web applications...
+
+EXPERIENCE
+Senior Frontend Engineer — Acme Corp  (Jan 2021 – Present)
+• Led migration to React + TypeScript, reducing bundle size by 35%
+• Built design system used across 8 products
+
+SKILLS
+JavaScript, TypeScript, React, Node.js, Python, AWS, Docker, SQL"></textarea>
+        <div class="char-count" id="resume-char-count">0 characters</div>
+      </div>
+    </div>
+
+    <!-- Right col: JD -->
+    <div class="card" style="display:flex;flex-direction:column">
+      <div class="card-head" style="background:linear-gradient(135deg,#fffbeb,#fef3c7)">
+        🎯 Job Description
+        <span class="badge-pill" id="jd-char-badge" style="background:#fef3c7;border-color:#fde68a;color:#92400e">0 chars</span>
+      </div>
+      <textarea class="textarea-bare" id="jd-text" style="flex:1;min-height:440px"
+        placeholder="Senior Frontend Engineer — Bright Labs
+
+We're building the future of developer tooling and need a skilled frontend engineer to lead our component library efforts.
+
+RESPONSIBILITIES
+• Architect and maintain our React + TypeScript component library
+• Drive web performance improvements (Core Web Vitals)
+• Collaborate closely with design and backend teams
+• Mentor junior engineers
+
+REQUIREMENTS
+• 4+ years of React development
+• Strong TypeScript skills
+• Experience with testing (Jest, Cypress or Playwright)
+• GraphQL and REST API experience
+• Excellent communication skills
+
+NICE TO HAVE
+• Next.js experience
+• Design system expertise
+• Open source contributions"></textarea>
+      <div class="char-count" id="jd-char-count">0 characters</div>
+    </div>
+  </div>
+
+  <button class="btn btn-primary btn-lg btn-block" id="start-btn" onclick="startProcessing()">
+    ✦ &nbsp;Analyze &amp; Tailor My Resume
+  </button>
+</div>
+
+<!-- ════════════ PANEL 2: PROCESSING ════════════ -->
+<div class="panel" id="panel2">
+  <div class="processing-center">
+    <div class="spinner" id="proc-spinner"></div>
+    <div>
+      <div class="proc-title">Tailoring your resume…</div>
+      <div class="proc-sub" id="proc-sub">Reading content</div>
+    </div>
+    <div class="proc-log" id="proc-log"></div>
+    <button class="btn btn-secondary" id="cancel-btn" onclick="cancelProcessing()" style="display:none">Cancel</button>
+  </div>
+</div>
+
+<!-- ════════════ PANEL 3: REVIEW ════════════ -->
+<div class="panel" id="panel3">
+  <div class="page-header">
+    <div class="page-eyebrow">Step 3 of 4</div>
+    <h1 class="page-title">Review your <em>tailored resume</em></h1>
+    <p class="page-desc">Check every section. Edit directly or ask Claude to make specific changes.</p>
+  </div>
+
+  <div class="review-layout">
+
+    <!-- Main: resume doc -->
+    <div>
+      <div class="resume-doc">
+        <div class="resume-doc-toolbar">
+          <span class="doc-toolbar-title" id="resume-doc-label">📄 Tailored Resume</span>
+          <div class="doc-toolbar-actions">
+            <button class="btn btn-secondary" style="padding:5px 10px;font-size:12px" onclick="copyResumeText()" title="Copy to clipboard">📋 Copy</button>
+          </div>
+        </div>
+        <div class="tab-bar">
+          <button class="tab-btn active" onclick="switchTab('formatted', this)">📋 Formatted Preview</button>
+          <button class="tab-btn" onclick="switchTab('raw', this)">✏️ Edit Raw Text</button>
+        </div>
+        <div class="tab-panel active" id="tab-formatted">
+          <div class="resume-formatted" id="resume-formatted-view"></div>
+        </div>
+        <div class="tab-panel" id="tab-raw">
+          <div class="resume-raw">
+            <textarea id="raw-resume-textarea" onchange="S.finalResume=this.value" oninput="S.finalResume=this.value"></textarea>
+          </div>
+        </div>
+      </div>
+
+      <div class="btn-row" style="margin-top:16px">
+        <button class="btn btn-success btn-lg" onclick="goToStep(4)">✓ Looks good — Export Resume</button>
+        <button class="btn btn-secondary" onclick="goToStep(1)">← Start over</button>
+      </div>
+    </div>
+
+    <!-- Sidebar -->
+    <div class="sidebar">
+
+      <!-- Score -->
+      <div class="card">
+        <div class="card-head">📊 Match Score</div>
+        <div class="score-widget">
+          <div class="score-ring-wrap">
+            <svg width="96" height="96" viewBox="0 0 96 96">
+              <circle cx="48" cy="48" r="40" fill="none" stroke="#E2DDD6" stroke-width="8"/>
+              <circle cx="48" cy="48" r="40" fill="none" stroke="#2563EB" stroke-width="8"
+                stroke-dasharray="251.3" stroke-dashoffset="251.3" stroke-linecap="round"
+                id="score-arc" style="transition: stroke-dashoffset 1s ease, stroke 0.5s ease;"/>
+            </svg>
+            <div class="score-ring-inner">
+              <div class="score-number" id="score-number">—</div>
+              <div class="score-sublabel">Match</div>
+            </div>
+          </div>
+          <div class="score-caption" id="score-caption">—</div>
+        </div>
+      </div>
+
+      <!-- Skills analysis -->
+      <div class="card">
+        <div class="card-head">🔍 Skill Analysis</div>
+        <div style="padding:14px 16px">
+          <div class="skill-section-label">✓ Already matched</div>
+          <div class="skill-chips" id="matched-skills"></div>
+          <div class="skill-section-label">+ Added / highlighted</div>
+          <div class="skill-chips" id="added-skills"></div>
+        </div>
+      </div>
+
+      <!-- Changes made -->
+      <div class="card">
+        <div class="card-head">✏️ Changes Made</div>
+        <div style="padding:12px 16px" id="changes-list"></div>
+      </div>
+
+      <!-- Re-modify -->
+      <div class="card">
+        <div class="card-head">💬 Request Changes</div>
+        <div style="padding:14px 16px">
+          <div class="form-label">Tell Claude what to modify:</div>
+          <textarea class="remod-textarea" id="remod-text"
+            placeholder="e.g. Make the summary 2 sentences max. Emphasize leadership experience more. Add 'Agile/Scrum' to skills."></textarea>
+          <div style="margin:8px 0 10px;display:flex;flex-wrap:wrap;gap:4px" id="quick-prompts">
+            <span class="history-chip" onclick="quickPrompt('Make the summary more concise (2-3 sentences)')">Shorter summary</span>
+            <span class="history-chip" onclick="quickPrompt('Add more quantified metrics to experience bullets')">Add metrics</span>
+            <span class="history-chip" onclick="quickPrompt('Make the tone more confident and action-oriented')">Stronger tone</span>
+            <span class="history-chip" onclick="quickPrompt('Reorganize skills by relevance to the job description')">Reorder skills</span>
+          </div>
+          <button class="btn btn-primary btn-block" id="remod-btn" onclick="requestRemodify()">
+            ↺ &nbsp;Re-tailor with this feedback
+          </button>
+          <div id="remod-history" style="margin-top:10px;display:none">
+            <div style="font-size:11px;color:var(--ink3);margin-bottom:4px;font-weight:500">Previous requests:</div>
+            <div id="remod-history-list"></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<!-- ════════════ PANEL 4: EXPORT ════════════ -->
+<div class="panel" id="panel4">
+  <div class="export-layout">
+    <div class="export-hero">
+      <div class="export-hero-emoji">🎉</div>
+      <h2>Your resume is ready!</h2>
+      <p>Download in your preferred format. All exports include your latest edits.</p>
+    </div>
+
+    <div class="export-status alert-success" id="export-status"></div>
+
+    <div class="export-formats">
+      <div class="export-card" onclick="doExport('txt')">
+        <div class="export-card-icon" style="background:#eff6ff">📝</div>
+        <div>
+          <h4>Plain Text (.txt)</h4>
+          <p>ATS-safe, paste anywhere</p>
+        </div>
+      </div>
+      <div class="export-card" onclick="doExport('html')">
+        <div class="export-card-icon" style="background:#fff7ed">🌐</div>
+        <div>
+          <h4>Web Page (.html)</h4>
+          <p>Formatted, print-ready</p>
+        </div>
+      </div>
+      <div class="export-card" onclick="doExport('pdf')">
+        <div class="export-card-icon" style="background:#fef2f2">📕</div>
+        <div>
+          <h4>PDF Document</h4>
+          <p>Ready to attach and submit</p>
+        </div>
+      </div>
+      <div class="export-card" onclick="doExport('docx')">
+        <div class="export-card-icon" style="background:#eff6ff">📘</div>
+        <div>
+          <h4>Word (.docx)</h4>
+          <p>Edit in Microsoft Word or Google Docs</p>
+        </div>
+      </div>
+      <div class="export-card" onclick="doExport('copy')">
+        <div class="export-card-icon" style="background:#f0fdf4">📋</div>
+        <div>
+          <h4>Copy to Clipboard</h4>
+          <p>Paste into any editor</p>
+        </div>
+      </div>
+    </div>
+
+    <div class="btn-row" style="justify-content:center;gap:12px">
+      <button class="btn btn-secondary" onclick="goToStep(3)">← Back to review</button>
+      <button class="btn btn-secondary" onclick="resetAll()">↺ Tailor another resume</button>
+    </div>
+  </div>
+</div>
+
+</main><!-- end .page-content -->
+</div><!-- end .app-shell -->
+
+<!-- ════════════ API KEY MODAL ════════════ -->
+<div class="modal-backdrop" id="api-modal">
+  <div class="modal">
+    <div class="modal-head">
+      <h3>🔑 Claude API Key</h3>
+      <button class="modal-close" onclick="closeApiModal()">×</button>
+    </div>
+    <div class="modal-body">
+      <p style="font-size:13px;color:var(--ink2);margin-bottom:16px;line-height:1.6">
+        Enter your Claude API key to enable AI resume tailoring. Your key is stored only in this browser session and never sent anywhere except Claude's API.
+      </p>
+      <label class="form-label">API Key</label>
+      <input class="form-input" id="api-key-input" type="password"
+        placeholder="sk-ant-api03-..." autocomplete="off" spellcheck="false"
+        onkeydown="if(event.key==='Enter') saveApiKey()">
+      <div style="margin-top:12px">
+        <label class="form-label">Model (affects cost &amp; quality)</label>
+        <select class="form-input" id="api-model-select" style="cursor:pointer">
+          <option value="claude-sonnet-4-20250514">Claude Sonnet 4 — Faster, lower cost</option>
+          <option value="claude-opus-4-5">Claude Opus 4.5 — Highest quality</option>
+        </select>
+      </div>
+      <div style="margin-top:10px;font-size:12px;color:var(--ink3)">
+        Get your key at <a href="https://console.anthropic.com/api-keys" target="_blank">console.anthropic.com</a>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-secondary" onclick="closeApiModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveApiKey()">Save Key</button>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* ══════════════════════════════════════════
+   APP STATE
+══════════════════════════════════════════ */
+const S = {
+  apiKey:         '',
+  preferredModel: '', // e.g. 'claude-sonnet-4-20250514' (default, cheaper) or 'claude-opus-4-5'
+  rawResume:      '',
+  jdText:         '',
+  fileName:       '',
+  result:         null,
+  finalResume:    '',
+  maxStep:        1,
+  cancelled:      false,
+  remodHistory:   [],
+};
+
+/* ══════════════════════════════════════════
+   INIT
+══════════════════════════════════════════ */
+document.addEventListener('DOMContentLoaded', () => {
+  // Restore API key and model preference from localStorage
+  const saved = localStorage.getItem('anthropic_key');
+  if (saved) { S.apiKey = saved; updateApiKeyUI(true); }
+  else { document.getElementById('api-warning').style.display = 'flex'; }
+  const savedModel = localStorage.getItem('claude_model');
+  if (savedModel) S.preferredModel = savedModel;
+  const modelSelect = document.getElementById('api-model-select');
+  if (modelSelect && S.preferredModel) modelSelect.value = S.preferredModel;
+
+  // Char counters + auto-save to localStorage
+  const rt = document.getElementById('resume-text');
+  const jt = document.getElementById('jd-text');
+
+  // Restore saved text
+  const savedResume = localStorage.getItem('resume_text');
+  const savedJD     = localStorage.getItem('jd_text');
+  if (savedResume) { rt.value = savedResume; updateCharCount(savedResume, 'resume-char-count', 'resume-char-badge'); }
+  if (savedJD)     { jt.value = savedJD;     updateCharCount(savedJD,     'jd-char-count',     'jd-char-badge');   }
+
+  rt.addEventListener('input', () => {
+    updateCharCount(rt.value, 'resume-char-count', 'resume-char-badge');
+    localStorage.setItem('resume_text', rt.value);
+  });
+  jt.addEventListener('input', () => {
+    updateCharCount(jt.value, 'jd-char-count', 'jd-char-badge');
+    localStorage.setItem('jd_text', jt.value);
+  });
+
+  // Drop zone
+  const dz = document.getElementById('drop-zone');
+  dz.addEventListener('dragover',  e => { e.preventDefault(); dz.classList.add('dragover'); });
+  dz.addEventListener('dragleave', () => dz.classList.remove('dragover'));
+  dz.addEventListener('drop', e => {
+    e.preventDefault(); dz.classList.remove('dragover');
+    const f = e.dataTransfer.files[0];
+    if (f) handleFile(f);
+  });
+  document.getElementById('file-input').addEventListener('change', e => {
+    if (e.target.files[0]) handleFile(e.target.files[0]);
+  });
+});
+
+function updateCharCount(val, countId, badgeId) {
+  const n = val.length;
+  document.getElementById(countId).textContent = n.toLocaleString() + ' characters';
+  document.getElementById(badgeId).textContent = n > 0 ? n.toLocaleString() + ' chars' : '0 chars';
+}
+
+/* ══════════════════════════════════════════
+   API KEY
+══════════════════════════════════════════ */
+function openApiModal() {
+  document.getElementById('api-key-input').value = S.apiKey || '';
+  const sel = document.getElementById('api-model-select');
+  if (sel) sel.value = S.preferredModel || 'claude-sonnet-4-20250514';
+  document.getElementById('api-modal').classList.add('open');
+  setTimeout(() => document.getElementById('api-key-input').focus(), 100);
+}
+function closeApiModal() {
+  document.getElementById('api-modal').classList.remove('open');
+}
+function saveApiKey() {
+  const val = document.getElementById('api-key-input').value.trim();
+  if (!val || !val.startsWith('sk-')) {
+    showToast('Invalid API key format. Should start with sk-', 'error'); return;
+  }
+  S.apiKey = val;
+  const modelEl = document.getElementById('api-model-select');
+  if (modelEl) {
+    S.preferredModel = modelEl.value;
+    localStorage.setItem('claude_model', S.preferredModel);
+  }
+  localStorage.setItem('anthropic_key', val);
+  updateApiKeyUI(true);
+  closeApiModal();
+  document.getElementById('api-warning').style.display = 'none';
+  showToast('API key saved for this session', 'success');
+}
+function updateApiKeyUI(isSet) {
+  const dot = document.getElementById('api-dot');
+  const lbl = document.getElementById('api-key-label');
+  dot.className = 'api-key-dot' + (isSet ? ' set' : '');
+  lbl.textContent = isSet ? 'API Key ✓' : 'Set API Key';
+}
+
+/* ══════════════════════════════════════════
+   FILE HANDLING
+══════════════════════════════════════════ */
+async function handleFile(file) {
+  const ext = file.name.split('.').pop().toLowerCase();
+  const icons = { pdf: '🔴', docx: '🔵', doc: '🔵', txt: '📄' };
+
+  document.getElementById('fs-icon').textContent = icons[ext] || '📄';
+  document.getElementById('fs-name').textContent = file.name;
+  document.getElementById('fs-meta').textContent = `${(file.size / 1024).toFixed(1)} KB · ${ext.toUpperCase()} · parsing…`;
+  document.getElementById('file-strip').classList.add('visible');
+  document.getElementById('resume-text').value = '';
+
+  try {
+    let text = '';
+    if (ext === 'txt') {
+      text = await file.text();
+    } else if (ext === 'pdf') {
+      text = await parsePDF(file);
+    } else if (ext === 'docx' || ext === 'doc') {
+      text = await parseDOCX(file);
+    } else {
+      showToast('Unsupported file type. Please use PDF, DOCX, or TXT.', 'error');
+      return;
+    }
+
+    if (!text || text.trim().length < 50) {
+      showToast('Could not extract enough text. Please paste manually.', 'warning');
+      document.getElementById('fs-meta').textContent = 'Extraction incomplete — paste text below';
+      return;
+    }
+
+    S.rawResume = text;
+    S.fileName = file.name;
+    document.getElementById('resume-text').value = text;
+    updateCharCount(text, 'resume-char-count', 'resume-char-badge');
+    document.getElementById('fs-meta').textContent =
+      `${(file.size / 1024).toFixed(1)} KB · ${ext.toUpperCase()} · ${text.split('\n').filter(l=>l.trim()).length} lines extracted`;
+    showToast('✓ File parsed and loaded', 'success');
+  } catch (err) {
+    console.error('File parse error:', err);
+    document.getElementById('fs-meta').textContent = 'Parse failed — paste text manually below';
+    showToast('Could not parse file. Please paste your resume text manually.', 'error');
+  }
+}
+
+async function parsePDF(file) {
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
+  const buf = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: buf }).promise;
+  const lines = [];
+  for (let p = 1; p <= pdf.numPages; p++) {
+    const page = await pdf.getPage(p);
+    const content = await page.getTextContent();
+    // Group items by approximate Y position for proper line ordering
+    const byY = {};
+    for (const item of content.items) {
+      if (!item.str.trim()) continue;
+      const y = Math.round(item.transform[5] / 5) * 5;
+      if (!byY[y]) byY[y] = [];
+      byY[y].push({ x: item.transform[4], str: item.str });
+    }
+    const ys = Object.keys(byY).map(Number).sort((a, b) => b - a);
+    for (const y of ys) {
+      const row = byY[y].sort((a, b) => a.x - b.x).map(i => i.str).join(' ');
+      lines.push(row.trim());
+    }
+    lines.push('');
+  }
+  return lines.join('\n').replace(/\n{3,}/g, '\n\n').trim();
+}
+
+async function parseDOCX(file) {
+  const buf = await file.arrayBuffer();
+  const result = await mammoth.extractRawText({ arrayBuffer: buf });
+  return result.value.trim();
+}
+
+function clearFile() {
+  S.rawResume = ''; S.fileName = '';
+  document.getElementById('file-strip').classList.remove('visible');
+  document.getElementById('resume-text').value = '';
+  document.getElementById('file-input').value = '';
+  updateCharCount('', 'resume-char-count', 'resume-char-badge');
+}
+
+/* ══════════════════════════════════════════
+   NAVIGATION
+══════════════════════════════════════════ */
+function goToStep(n) {
+  document.querySelectorAll('.panel').forEach(p => p.classList.remove('active'));
+  document.getElementById('panel' + n).classList.add('active');
+  document.querySelectorAll('.step-item').forEach((el, i) => {
+    el.classList.remove('active', 'done', 'clickable');
+    const sn = i + 1;
+    if (sn < n) { el.classList.add('done'); if (sn !== 2) el.classList.add('clickable'); }
+    if (sn === n) el.classList.add('active');
+  });
+  if (n > S.maxStep) S.maxStep = n;
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+function tryNav(n) {
+  if (n === 2) return; // processing step not clickable
+  if (n <= S.maxStep) goToStep(n);
+}
+
+/* ══════════════════════════════════════════
+   PROCESSING LOGGER
+══════════════════════════════════════════ */
+function addLogLine(msg, type = 'pending') {
+  const el = document.getElementById('proc-log');
+  const d = document.createElement('div');
+  d.className = 'proc-log-line log-' + type;
+  d.textContent = (type === 'done' ? '✓  ' : type === 'error' ? '✗  ' : '▸  ') + msg;
+  el.appendChild(d);
+  el.scrollTop = el.scrollHeight;
+  document.getElementById('proc-sub').textContent = msg;
+  return d;
+}
+function completeLastLog() {
+  const el = document.getElementById('proc-log');
+  const last = el.querySelector('.log-pending');
+  if (last) { last.className = 'proc-log-line log-done'; last.textContent = '✓  ' + last.textContent.slice(3); }
+}
+
+/* ══════════════════════════════════════════
+   AI CALL
+══════════════════════════════════════════ */
+async function startProcessing() {
+  const resumeText = document.getElementById('resume-text').value.trim();
+  const jdText = document.getElementById('jd-text').value.trim();
+
+  if (!resumeText || resumeText.length < 50) {
+    showToast('Please upload or paste your resume (at least a few lines)', 'error'); return;
+  }
+  if (!jdText || jdText.length < 50) {
+    showToast('Please paste the job description', 'error'); return;
+  }
+  if (!S.apiKey) {
+    openApiModal();
+    showToast('Please set your Anthropic API key first', 'warning'); return;
+  }
+
+  S.rawResume = resumeText;
+  S.jdText = jdText;
+  S.cancelled = false;
+
+  goToStep(2);
+  await runAI(resumeText, jdText, null);
+}
+
+function cancelProcessing() {
+  S.cancelled = true;
+  goToStep(1);
+  showToast('Processing cancelled', 'warning');
+}
+
+async function runAI(resumeText, jdText, feedback) {
+  document.getElementById('proc-log').innerHTML = '';
+  document.getElementById('cancel-btn').style.display = 'inline-flex';
+
+  addLogLine('Reading and parsing resume content…');
+  await sleep(200);
+  completeLastLog();
+
+  addLogLine('Analyzing job description requirements…');
+  await sleep(200);
+  completeLastLog();
+
+  addLogLine(feedback ? 'Applying your feedback with Claude…' : 'Tailoring resume with Claude AI…');
+
+  // Shorter system prompt to reduce input tokens and cost
+  const SYSTEM = `You are a senior ATS-focused resume writer. Given a resume and job description, output ONLY a valid JSON object (no markdown, no explanation).
+
+JSON schema:
+{"matchScore":<0-100>,"scoreCaption":"<8 words max>","matchedSkills":["skill from resume JD wants"],"addedSkills":["JD skill woven in"],"changesSummary":["change 1","change 2"],"sections":{"name":"","contact":"","summary":"","experience":"","skills":"","education":"","other":""},"fullResume":"<complete resume as plain text, name at top, CAPS section headers, • bullets>"}
+
+Rules: Never invent titles, companies, dates, or metrics. Reframe experience with JD language only when truthful. Use action verbs (Led, Architected, Delivered). fullResume is the export version—complete and clean.`;
+
+  // Cap input length to reduce token usage (optional: ~12k resume, ~5k JD)
+  const MAX_RESUME_CHARS = 12000, MAX_JD_CHARS = 5000;
+  const resumeCap = resumeText.length > MAX_RESUME_CHARS ? resumeText.slice(0, MAX_RESUME_CHARS) + '\n\n[Content truncated for length. Tailor based on the above.]' : resumeText;
+  const jdCap = jdText.length > MAX_JD_CHARS ? jdText.slice(0, MAX_JD_CHARS) + '\n\n[Job description truncated.]' : jdText;
+
+  const userMsg = feedback
+    ? `CURRENT TAILORED RESUME:\n${S.finalResume}\n\n---\nJOB DESCRIPTION:\n${jdCap}\n\n---\nUSER FEEDBACK (apply these specific changes):\n${feedback}\n\nRe-tailor the resume applying the feedback above.`
+    : `ORIGINAL RESUME:\n${resumeCap}\n\n---\nJOB DESCRIPTION:\n${jdCap}`;
+
+  try {
+    const res = await fetch('https://api.anthropic.com/v1/messages', {
+      method: 'POST',
+      headers: {
+        'Content-Type': 'application/json',
+        'x-api-key': S.apiKey,
+        'anthropic-version': '2023-06-01',
+        'anthropic-dangerous-direct-browser-access': 'true',
+      },
+      body: JSON.stringify({
+        model: S.preferredModel || 'claude-sonnet-4-20250514',
+        max_tokens: 4096,
+        system: SYSTEM,
+        messages: [{ role: 'user', content: userMsg }],
+      }),
+    });
+
+    if (S.cancelled) return;
+
+    if (!res.ok) {
+      const errBody = await res.json().catch(() => ({}));
+      const msg = errBody?.error?.message || `HTTP ${res.status}`;
+      throw new Error(msg);
+    }
+
+    const data = await res.json();
+    if (S.cancelled) return;
+
+    const rawText = (data.content || []).map(b => b.type === 'text' ? b.text : '').join('');
+    if (!rawText) throw new Error('Empty response from Claude');
+
+    // Robust JSON extraction
+    let parsed;
+    try {
+      const clean = rawText.replace(/^```(?:json)?\n?/, '').replace(/\n?```$/, '').trim();
+      parsed = JSON.parse(clean);
+    } catch (e1) {
+      // Try to find JSON object in the response
+      const match = rawText.match(/\{[\s\S]*\}/);
+      if (!match) throw new Error('Could not parse AI response as JSON');
+      parsed = JSON.parse(match[0]);
+    }
+
+    if (!parsed.fullResume) throw new Error('AI response missing fullResume field');
+
+    S.result = parsed;
+    S.finalResume = parsed.fullResume;
+
+    completeLastLog();
+    addLogLine('Formatting preview…');
+    await sleep(150);
+    completeLastLog();
+    addLogLine('Done!', 'done');
+    await sleep(350);
+
+    renderReview(parsed);
+    goToStep(3);
+
+  } catch (err) {
+    completeLastLog();
+    addLogLine('Error: ' + err.message, 'error');
+    document.getElementById('proc-spinner').style.animationPlayState = 'paused';
+    console.error('Claude API error:', err);
+    showToast('AI error: ' + err.message, 'error');
+    document.getElementById('cancel-btn').textContent = '← Go Back';
+  } finally {
+    document.getElementById('cancel-btn').style.display = 'inline-flex';
+  }
+}
+
+/* ══════════════════════════════════════════
+   RENDER REVIEW
+══════════════════════════════════════════ */
+function renderReview(data) {
+  // Score ring
+  const score = Math.max(0, Math.min(100, data.matchScore || 0));
+  const circ = 251.3;
+  const offset = circ - (score / 100) * circ;
+  const color = score >= 70 ? '#16A34A' : score >= 45 ? '#2563EB' : '#D97706';
+  const scoreArc = document.getElementById('score-arc');
+  scoreArc.style.strokeDashoffset = circ; // reset first
+  setTimeout(() => { scoreArc.style.strokeDashoffset = offset; scoreArc.style.stroke = color; }, 60);
+  const scoreEl = document.getElementById('score-number');
+  scoreEl.textContent = score + '%';
+  scoreEl.style.color = color;
+  document.getElementById('score-caption').textContent = data.scoreCaption || '';
+
+  // Skills
+  document.getElementById('matched-skills').innerHTML =
+    (data.matchedSkills || []).map(s => `<span class="tag tag-green">${s}</span>`).join('');
+  document.getElementById('added-skills').innerHTML =
+    (data.addedSkills || []).map(s => `<span class="tag tag-blue">+ ${s}</span>`).join('');
+
+  // Changes
+  const cl = document.getElementById('changes-list');
+  const changes = data.changesSummary || [];
+  cl.innerHTML = changes.length
+    ? changes.map(c => `<div class="change-entry"><div class="change-bullet"></div><span>${c}</span></div>`).join('')
+    : '<span style="font-size:12px;color:var(--ink3)">No change summary available.</span>';
+
+  // Formatted view
+  renderFormattedResume(data.sections || {}, data.fullResume);
+
+  // Raw editor
+  document.getElementById('raw-resume-textarea').value = S.finalResume;
+}
+
+function renderFormattedResume(sections, fullText) {
+  const el = document.getElementById('resume-formatted-view');
+
+  // If we have structured sections, render them beautifully
+  if (sections.name || sections.summary) {
+    let html = '';
+
+    if (sections.name) {
+      html += `<div class="rf-name">${esc(sections.name)}</div>`;
+    }
+    if (sections.contact) {
+      html += `<div class="rf-contact">${esc(sections.contact).replace(/\n/g, ' · ')}</div>`;
+    }
+    if (sections.summary) {
+      html += `<div class="rf-section">
+        <div class="rf-section-head">Summary</div>
+        <div class="rf-paragraph">${esc(sections.summary)}</div>
+      </div>`;
+    }
+    if (sections.experience) {
+      html += `<div class="rf-section">
+        <div class="rf-section-head">Experience</div>
+        <div class="rf-paragraph">${formatExperience(sections.experience)}</div>
+      </div>`;
+    }
+    if (sections.skills) {
+      html += `<div class="rf-section">
+        <div class="rf-section-head">Skills</div>
+        ${formatSkills(sections.skills)}
+      </div>`;
+    }
+    if (sections.education) {
+      html += `<div class="rf-section">
+        <div class="rf-section-head">Education</div>
+        <div class="rf-paragraph">${esc(sections.education)}</div>
+      </div>`;
+    }
+    if (sections.other && sections.other.trim()) {
+      html += `<div class="rf-section">
+        <div class="rf-section-head">Other</div>
+        <div class="rf-paragraph">${esc(sections.other)}</div>
+      </div>`;
+    }
+    el.innerHTML = html;
+  } else {
+    // Fallback: render full text with basic formatting
+    el.innerHTML = `<div style="white-space:pre-wrap;font-family:'JetBrains Mono',monospace;font-size:12.5px;line-height:1.7">${esc(fullText)}</div>`;
+  }
+}
+
+function formatExperience(text) {
+  // Convert bullet points to HTML lists
+  const lines = text.split('\n');
+  let html = '';
+  let inList = false;
+  for (const line of lines) {
+    const trimmed = line.trim();
+    if (!trimmed) {
+      if (inList) { html += '</ul>'; inList = false; }
+      html += '<br>';
+      continue;
+    }
+    if (trimmed.startsWith('•') || trimmed.startsWith('-') || trimmed.startsWith('*')) {
+      if (!inList) { html += '<ul class="rf-bullets">'; inList = true; }
+      html += `<li>${esc(trimmed.replace(/^[•\-\*]\s*/, ''))}</li>`;
+    } else {
+      if (inList) { html += '</ul>'; inList = false; }
+      // Job title line or company line
+      if (trimmed.match(/—|–|-/) && (trimmed.includes('20') || trimmed.includes('19'))) {
+        const parts = trimmed.split(/—|–/);
+        html += `<div class="rf-job-title">${esc(parts[0].trim())}</div>`;
+        if (parts[1]) html += `<div class="rf-job-meta">${esc(parts[1].trim())}</div>`;
+      } else {
+        html += `<p style="margin-bottom:2px">${esc(trimmed)}</p>`;
+      }
+    }
+  }
+  if (inList) html += '</ul>';
+  return html;
+}
+
+function formatSkills(text) {
+  // Detect if it's a comma/bullet list or structured categories
+  if (text.includes(':')) {
+    // Category format
+    const lines = text.split('\n').filter(l => l.trim());
+    let html = '';
+    for (const line of lines) {
+      if (line.includes(':')) {
+        const [cat, skills] = line.split(':');
+        html += `<div style="margin-bottom:8px"><span style="font-size:12px;font-weight:600;color:var(--ink2)">${esc(cat.trim())}:</span> `;
+        html += skills.split(/[,•]/).filter(s => s.trim())
+          .map(s => `<span class="rf-skill-chip">${esc(s.trim())}</span>`).join(' ');
+        html += '</div>';
+      } else {
+        html += line.split(/[,•]/).filter(s => s.trim())
+          .map(s => `<span class="rf-skill-chip">${esc(s.trim())}</span>`).join(' ');
+      }
+    }
+    return html;
+  } else {
+    // Simple chip list
+    const chips = text.split(/[,\n•]/).map(s => s.trim()).filter(Boolean)
+      .map(s => `<span class="rf-skill-chip">${esc(s)}</span>`).join(' ');
+    return `<div class="rf-skills-grid">${chips}</div>`;
+  }
+}
+
+/* ══════════════════════════════════════════
+   RE-MODIFY
+══════════════════════════════════════════ */
+function quickPrompt(text) {
+  document.getElementById('remod-text').value = text;
+  document.getElementById('remod-text').focus();
+}
+
+async function requestRemodify() {
+  const feedback = document.getElementById('remod-text').value.trim();
+  if (!feedback) { showToast('Please describe what to change', 'warning'); return; }
+
+  // Add to history
+  S.remodHistory.push(feedback);
+  renderRemodHistory();
+
+  const btn = document.getElementById('remod-btn');
+  btn.disabled = true; btn.textContent = '↺  Re-tailoring…';
+
+  goToStep(2);
+  document.getElementById('proc-log').innerHTML = '';
+  addLogLine('Applying your feedback…');
+  S.cancelled = false;
+
+  await runAI(S.rawResume, S.jdText, feedback);
+
+  btn.disabled = false; btn.textContent = '↺  Re-tailor with this feedback';
+  document.getElementById('remod-text').value = '';
+}
+
+function renderRemodHistory() {
+  const list = S.remodHistory;
+  if (!list.length) return;
+  const el = document.getElementById('remod-history');
+  el.style.display = 'block';
+  document.getElementById('remod-history-list').innerHTML = list.slice(-3).map(h =>
+    `<span class="history-chip" onclick="quickPrompt('${h.replace(/'/g,"&#39;")}')">${h.slice(0,40)}${h.length>40?'…':''}</span>`
+  ).join('');
+}
+
+/* ══════════════════════════════════════════
+   TAB SWITCHER
+══════════════════════════════════════════ */
+function switchTab(name, btn) {
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById('tab-' + name).classList.add('active');
+
+  if (name === 'raw') {
+    // Keep raw textarea in sync
+    document.getElementById('raw-resume-textarea').value = S.finalResume;
+  }
+}
+
+function copyResumeText() {
+  // Get latest from raw editor if open
+  const raw = document.getElementById('raw-resume-textarea').value;
+  if (raw) S.finalResume = raw;
+  navigator.clipboard.writeText(S.finalResume)
+    .then(() => showToast('✓ Copied to clipboard', 'success'))
+    .catch(() => showToast('Copy failed — try the Export tab', 'error'));
+}
+
+/* ══════════════════════════════════════════
+   EXPORT
+══════════════════════════════════════════ */
+function doExport(type) {
+  // Grab latest edits from raw editor
+  const rawVal = document.getElementById('raw-resume-textarea').value;
+  if (rawVal) S.finalResume = rawVal;
+  const content = S.finalResume;
+  const statusEl = document.getElementById('export-status');
+
+  if (!content) { showToast('No resume content to export', 'error'); return; }
+
+  if (type === 'txt') {
+    downloadFile('resume-tailored.txt', content, 'text/plain');
+    flashStatus(statusEl, '✓ Text file downloaded!', 'alert-success');
+  } else if (type === 'html') {
+    downloadFile('resume-tailored.html', buildHTMLExport(content), 'text/html');
+    flashStatus(statusEl, '✓ HTML file downloaded!', 'alert-success');
+  } else if (type === 'pdf') {
+    exportPDF(content);
+    flashStatus(statusEl, '✓ PDF generated!', 'alert-success');
+  } else if (type === 'docx') {
+    exportDOCX(content).then(() => flashStatus(statusEl, '✓ Word document downloaded!', 'alert-success')).catch(() => flashStatus(statusEl, '✗ DOCX export failed. Try PDF or HTML.', 'alert-error'));
+  } else if (type === 'copy') {
+    navigator.clipboard.writeText(content)
+      .then(() => flashStatus(statusEl, '✓ Copied to clipboard!', 'alert-success'))
+      .catch(() => flashStatus(statusEl, '✗ Copy failed — try plain text download', 'alert-error'));
+  }
+}
+
+function downloadFile(name, content, mime) {
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([content], { type: mime }));
+  a.download = name; a.click();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+}
+
+function buildHTMLExport(text) {
+  const escaped = esc(text);
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Resume</title>
+<style>
+  @import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body {
+    font-family: 'Inter', Georgia, serif;
+    max-width: 860px; margin: 48px auto; padding: 0 40px;
+    color: #1a1916; line-height: 1.7; font-size: 14px;
+  }
+  pre {
+    white-space: pre-wrap; word-wrap: break-word;
+    font-family: inherit; font-size: 13.5px; line-height: 1.75;
+  }
+  @media print {
+    body { margin: 24px auto; padding: 0 24px; }
+    @page { margin: 2cm; }
+  }
+</style>
+</head>
+<body><pre>${escaped}</pre></body>
+</html>`;
+}
+
+function exportPDF(text) {
+  try {
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ unit: 'mm', format: 'a4' });
+    const marginL = 18, marginR = 18, marginT = 20, marginB = 20;
+    const pageW = doc.internal.pageSize.getWidth();
+    const pageH = doc.internal.pageSize.getHeight();
+    const maxW = pageW - marginL - marginR;
+
+    doc.setFont('helvetica', 'normal');
+
+    const lines = text.split('\n');
+    let y = marginT;
+
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+
+      // Detect headers (ALL CAPS, short line, or ends with nothing important)
+      const isHeader = line === line.toUpperCase() && line.length > 2 && line.length < 40 && line.trim();
+      const isEmpty = !line.trim();
+
+      if (isEmpty) {
+        y += 3;
+        continue;
+      }
+
+      if (isHeader) {
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(10);
+      } else if (line.match(/^[A-Z][^a-z]{0,3}\b/) && !line.startsWith('•')) {
+        // Possible name line
+        doc.setFont('helvetica', 'bold');
+        doc.setFontSize(13);
+      } else {
+        doc.setFont('helvetica', 'normal');
+        doc.setFontSize(10);
+      }
+
+      const wrapped = doc.splitTextToSize(line, maxW);
+      const lineH = doc.getFontSize() * 0.4 + 1.5;
+
+      for (const wl of wrapped) {
+        if (y + lineH > pageH - marginB) {
+          doc.addPage(); y = marginT;
+        }
+        doc.text(wl, marginL, y);
+        y += lineH;
+      }
+
+      // Extra space after section headers
+      if (isHeader) y += 1;
+    }
+
+    // Get filename from content
+    const firstLine = text.split('\n').find(l => l.trim());
+    const safeName = (firstLine || 'resume').replace(/[^a-zA-Z0-9\s]/g, '').trim().slice(0, 30).replace(/\s+/g, '-').toLowerCase();
+    doc.save(`${safeName}-tailored.pdf`);
+  } catch (err) {
+    console.error('PDF export error:', err);
+    showToast('PDF export failed. Try HTML export instead.', 'error');
+  }
+}
+
+async function exportDOCX(text) {
+  try {
+    const mod = await import('https://cdn.skypack.dev/docx@8.5.0');
+    const docx = mod.default || mod;
+    const { Document, Packer, Paragraph, TextRun } = docx;
+    const lines = text.split('\n');
+    const children = [];
+    for (const rawLine of lines) {
+      const line = rawLine.trimEnd();
+      const isHeader = line && line === line.toUpperCase() && line.length > 2 && line.length < 40;
+      const isEmpty = !line.trim();
+      if (isEmpty) {
+        children.push(new Paragraph({ children: [new TextRun(' ')], spacing: { after: 120 } }));
+        continue;
+      }
+      const run = new TextRun({
+        text: line.replace(/^[•\-\*]\s*/, '• '),
+        bold: isHeader,
+        size: isHeader ? 22 : 24, // half-points, 22 = 11pt, 24 = 12pt
+      });
+      children.push(new Paragraph({ children: [run], spacing: { after: 100 } }));
+    }
+    const doc = new Document({
+      sections: [{ properties: {}, children }],
+    });
+    const blob = await Packer.toBlob(doc);
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    const firstLine = text.split('\n').find(l => l.trim());
+    const safeName = (firstLine || 'resume').replace(/[^a-zA-Z0-9\s]/g, '').trim().slice(0, 30).replace(/\s+/g, '-').toLowerCase();
+    a.download = `${safeName}-tailored.docx`;
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+  } catch (err) {
+    console.error('DOCX export error:', err);
+    showToast('DOCX export failed. Try PDF or HTML.', 'error');
+    throw err;
+  }
+}
+
+function flashStatus(el, msg, cls) {
+  el.textContent = msg;
+  el.className = 'export-status alert ' + cls + ' show';
+  setTimeout(() => el.classList.remove('show'), 4000);
+}
+
+/* ══════════════════════════════════════════
+   RESET
+══════════════════════════════════════════ */
+function resetAll() {
+  S.rawResume = ''; S.jdText = ''; S.fileName = '';
+  S.result = null; S.finalResume = ''; S.maxStep = 1;
+  S.remodHistory = [];
+  // preferredModel and apiKey left intact for convenience
+  document.getElementById('resume-text').value = '';
+  document.getElementById('jd-text').value = '';
+  document.getElementById('remod-text').value = '';
+  document.getElementById('remod-history').style.display = 'none';
+  clearFile();
+  updateCharCount('', 'resume-char-count', 'resume-char-badge');
+  updateCharCount('', 'jd-char-count', 'jd-char-badge');
+  goToStep(1);
+}
+
+/* ══════════════════════════════════════════
+   UTILITIES
+══════════════════════════════════════════ */
+function sleep(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+function esc(str) {
+  return String(str || '')
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+let toastTimer;
+function showToast(msg, type = '') {
+  clearTimeout(toastTimer);
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.className = 'toast' + (type ? ' ' + type : '');
+  el.classList.add('show');
+  toastTimer = setTimeout(() => el.classList.remove('show'), 3500);
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResumeAI — Tailor Your Resume</title>
+  <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/css/base.css">
+  <link rel="stylesheet" href="/css/layout.css">
+  <link rel="stylesheet" href="/css/components.css">
+  <link rel="stylesheet" href="/css/steps.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+</head>
+<body>
+  <div class="app-shell">
+    <nav class="topnav">
+      <div class="brand">
+        <div class="brand-icon">R</div>
+        ResumeAI
+      </div>
+      <div class="nav-right">
+        <button class="api-key-btn" id="api-key-btn" type="button">
+          <span class="api-key-dot" id="api-dot"></span>
+          <span id="api-key-label">Set API Key</span>
+        </button>
+      </div>
+    </nav>
+
+    <div class="stepbar">
+      <div class="step-item active" id="si1" data-step="1">
+        <div class="step-badge">1</div> Upload &amp; Input
+      </div>
+      <div class="step-divider">›</div>
+      <div class="step-item" id="si2"><div class="step-badge">2</div> AI Tailoring</div>
+      <div class="step-divider">›</div>
+      <div class="step-item" id="si3" data-step="3">
+        <div class="step-badge">3</div> Review &amp; Refine
+      </div>
+      <div class="step-divider">›</div>
+      <div class="step-item" id="si4" data-step="4">
+        <div class="step-badge">4</div> Export
+      </div>
+    </div>
+
+    <main class="page-content">
+      <!-- Panel 1: Input -->
+      <div class="panel active" id="panel1">
+        <div class="page-header">
+          <div class="page-eyebrow">Step 1 of 4</div>
+          <h1 class="page-title">Upload resume &amp; <em>job description</em></h1>
+          <p class="page-desc">Upload a PDF, Word doc, or paste text. Then add the job description — we'll tailor every section.</p>
+        </div>
+        <div id="api-warning" class="alert alert-warn" style="margin-bottom:18px;display:none">
+          <span>⚠️</span>
+          <span>No API key set. <button type="button" id="api-warning-btn" class="link-btn">Add your Claude API key</button> to enable AI tailoring.</span>
+        </div>
+        <div class="upload-layout">
+          <div>
+            <div class="drop-zone" id="drop-zone">
+              <input type="file" id="file-input" accept=".pdf,.doc,.docx,.txt" aria-label="Upload resume">
+              <div class="drop-icon">📄</div>
+              <div class="drop-title">Drop your resume file here</div>
+              <div class="drop-sub">or click to browse</div>
+              <div class="drop-formats">
+                <span class="fmt-tag">PDF</span>
+                <span class="fmt-tag">DOCX</span>
+                <span class="fmt-tag">DOC</span>
+                <span class="fmt-tag">TXT</span>
+              </div>
+            </div>
+            <div class="file-strip" id="file-strip">
+              <span class="file-strip-icon" id="fs-icon">📄</span>
+              <div class="file-strip-info">
+                <div class="file-strip-name" id="fs-name">—</div>
+                <div class="file-strip-meta" id="fs-meta">—</div>
+              </div>
+              <button type="button" class="file-strip-remove" id="file-strip-remove" title="Remove">✕</button>
+            </div>
+            <div class="divider-or">or paste as text</div>
+            <div class="card">
+              <div class="card-head">
+                ✏️ Resume Text
+                <span class="badge-pill" id="resume-char-badge">0 chars</span>
+              </div>
+              <textarea class="textarea-bare" id="resume-text" rows="10" placeholder="Paste or upload resume..."></textarea>
+              <div class="char-count" id="resume-char-count">0 characters</div>
+            </div>
+          </div>
+          <div class="card card-flex">
+            <div class="card-head card-head-jd">
+              🎯 Job Description
+              <span class="badge-pill" id="jd-char-badge">0 chars</span>
+            </div>
+            <textarea class="textarea-bare" id="jd-text" placeholder="Paste job description..."></textarea>
+            <div class="char-count" id="jd-char-count">0 characters</div>
+          </div>
+        </div>
+        <button type="button" class="btn btn-primary btn-lg btn-block" id="start-btn">✦ Analyze &amp; Tailor My Resume</button>
+      </div>
+
+      <!-- Panel 2: Processing -->
+      <div class="panel" id="panel2">
+        <div class="processing-center">
+          <div class="spinner" id="proc-spinner"></div>
+          <div>
+            <div class="proc-title">Tailoring your resume…</div>
+            <div class="proc-sub" id="proc-sub">Reading content</div>
+          </div>
+          <div class="proc-log" id="proc-log"></div>
+          <button type="button" class="btn btn-secondary" id="cancel-btn" style="display:none">Cancel</button>
+        </div>
+      </div>
+
+      <!-- Panel 3: Review -->
+      <div class="panel" id="panel3">
+        <div class="page-header">
+          <div class="page-eyebrow">Step 3 of 4</div>
+          <h1 class="page-title">Review your <em>tailored resume</em></h1>
+          <p class="page-desc">Check every section. Edit directly or ask Claude to make specific changes.</p>
+        </div>
+        <div class="review-layout">
+          <div>
+            <div class="resume-doc">
+              <div class="resume-doc-toolbar">
+                <span class="doc-toolbar-title">📄 Tailored Resume</span>
+                <div class="doc-toolbar-actions">
+                  <button type="button" class="btn btn-secondary btn-sm" id="copy-resume-btn">📋 Copy</button>
+                </div>
+              </div>
+              <div class="tab-bar">
+                <button type="button" class="tab-btn active" data-tab="formatted">📋 Formatted Preview</button>
+                <button type="button" class="tab-btn" data-tab="raw">✏️ Edit Raw Text</button>
+              </div>
+              <div class="tab-panel active" id="tab-formatted">
+                <div class="resume-formatted" id="resume-formatted-view"></div>
+              </div>
+              <div class="tab-panel" id="tab-raw">
+                <div class="resume-raw">
+                  <textarea id="raw-resume-textarea"></textarea>
+                </div>
+              </div>
+            </div>
+            <div class="btn-row" style="margin-top:16px">
+              <button type="button" class="btn btn-success btn-lg" id="go-export-btn">✓ Looks good — Export Resume</button>
+              <button type="button" class="btn btn-secondary" id="start-over-btn">← Start over</button>
+            </div>
+          </div>
+          <div class="sidebar">
+            <div class="card">
+              <div class="card-head">📊 Match Score</div>
+              <div class="score-widget">
+                <div class="score-ring-wrap">
+                  <svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true">
+                    <circle cx="48" cy="48" r="40" fill="none" stroke="#E2DDD6" stroke-width="8"/>
+                    <circle cx="48" cy="48" r="40" fill="none" stroke="#2563EB" stroke-width="8" stroke-dasharray="251.3" stroke-dashoffset="251.3" stroke-linecap="round" id="score-arc"/>
+                  </svg>
+                  <div class="score-ring-inner">
+                    <div class="score-number" id="score-number">—</div>
+                    <div class="score-sublabel">Match</div>
+                  </div>
+                </div>
+                <div class="score-caption" id="score-caption">—</div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head">🔍 Skill Analysis</div>
+              <div class="skill-analysis-body">
+                <div class="skill-section-label">✓ Already matched</div>
+                <div class="skill-chips" id="matched-skills"></div>
+                <div class="skill-section-label">+ Added / highlighted</div>
+                <div class="skill-chips" id="added-skills"></div>
+              </div>
+            </div>
+            <div class="card">
+              <div class="card-head">✏️ Changes Made</div>
+              <div class="card-body" id="changes-list"></div>
+            </div>
+            <div class="card">
+              <div class="card-head">💬 Request Changes</div>
+              <div class="card-body">
+                <label class="form-label" for="remod-text">Tell Claude what to modify:</label>
+                <textarea class="remod-textarea" id="remod-text" placeholder="e.g. Make the summary 2 sentences max..."></textarea>
+                <div class="quick-prompts" id="quick-prompts"></div>
+                <button type="button" class="btn btn-primary btn-block" id="remod-btn">↺ Re-tailor with this feedback</button>
+                <div id="remod-history" class="remod-history" style="display:none">
+                  <div class="remod-history-label">Previous requests:</div>
+                  <div id="remod-history-list"></div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Panel 4: Export -->
+      <div class="panel" id="panel4">
+        <div class="export-layout">
+          <div class="export-hero">
+            <div class="export-hero-emoji">🎉</div>
+            <h2>Your resume is ready!</h2>
+            <p>Download in your preferred format. All exports include your latest edits.</p>
+          </div>
+          <div class="export-status alert-success" id="export-status"></div>
+          <div class="export-formats">
+            <div class="export-card" data-export="txt">
+              <div class="export-card-icon export-icon-txt">📝</div>
+              <div>
+                <h4>Plain Text (.txt)</h4>
+                <p>ATS-safe, paste anywhere</p>
+              </div>
+            </div>
+            <div class="export-card" data-export="html">
+              <div class="export-card-icon export-icon-html">🌐</div>
+              <div>
+                <h4>Web Page (.html)</h4>
+                <p>Formatted, print-ready</p>
+              </div>
+            </div>
+            <div class="export-card" data-export="pdf">
+              <div class="export-card-icon export-icon-pdf">📕</div>
+              <div>
+                <h4>PDF Document</h4>
+                <p>Ready to attach and submit</p>
+              </div>
+            </div>
+            <div class="export-card" data-export="docx">
+              <div class="export-card-icon export-icon-docx">📘</div>
+              <div>
+                <h4>Word (.docx)</h4>
+                <p>Edit in Word or Google Docs</p>
+              </div>
+            </div>
+            <div class="export-card" data-export="copy">
+              <div class="export-card-icon export-icon-copy">📋</div>
+              <div>
+                <h4>Copy to Clipboard</h4>
+                <p>Paste into any editor</p>
+              </div>
+            </div>
+          </div>
+          <div class="btn-row export-actions">
+            <button type="button" class="btn btn-secondary" id="back-review-btn">← Back to review</button>
+            <button type="button" class="btn btn-secondary" id="reset-all-btn">↺ Tailor another resume</button>
+          </div>
+        </div>
+      </div>
+    </main>
+  </div>
+
+  <div class="modal-backdrop" id="api-modal">
+    <div class="modal">
+      <div class="modal-head">
+        <h3>🔑 Claude API Key</h3>
+        <button type="button" class="modal-close" id="modal-close" aria-label="Close">×</button>
+      </div>
+      <div class="modal-body">
+        <p class="modal-desc">Enter your Claude API key to enable AI resume tailoring. Your key is stored in this browser and only sent to the API.</p>
+        <label class="form-label" for="api-key-input">API Key</label>
+        <input class="form-input" id="api-key-input" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+        <div class="form-hint">
+          <label class="form-label" for="api-model-select">Model</label>
+          <select class="form-input" id="api-model-select">
+            <option value="claude-sonnet-4-20250514">Claude Sonnet 4 — Faster, lower cost</option>
+            <option value="claude-opus-4-5">Claude Opus 4.5 — Highest quality</option>
+          </select>
+        </div>
+        <p class="form-hint">Get your key at <a href="https://console.anthropic.com/api-keys" target="_blank" rel="noopener">console.anthropic.com</a></p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" id="modal-cancel">Cancel</button>
+        <button type="button" class="btn btn-primary" id="modal-save">Save Key</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+
+  <script src="/js/utils.js"></script>
+  <script src="/js/api.js"></script>
+  <script src="/js/file.js"></script>
+  <script src="/js/review.js"></script>
+  <script src="/js/export.js"></script>
+  <script src="/js/app.js"></script>
+</body>
+</html>
