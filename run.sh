@@ -3,7 +3,7 @@
 # Usage: ./run.sh
 set -e
 cd "$(dirname "$0")"
-export RESUMEAI_PORT="${RESUMEAI_PORT:-5000}"
+export RESUMEAI_PORT="${RESUMEAI_PORT:-5001}"
 if [ -d "venv" ]; then
   source venv/bin/activate
 fi
