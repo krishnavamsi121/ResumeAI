@@ -1,7 +1,7 @@
 # Python
 venv/
-__pycache__/
-*.py[cod]
+**/__pycache__/
+**/*.py[cod]
 *.pyo
 *.pyd
 .Python

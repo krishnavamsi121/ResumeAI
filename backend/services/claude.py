@@ -4,8 +4,17 @@ import re
 
 import anthropic
 
-from backend.config import ANTHROPIC_API_KEY, DEFAULT_MODEL
+from backend.config import ANTHROPIC_API_KEY, DEFAULT_MODEL, MAX_OUTPUT_TOKENS
 from backend.services.prompts import SYSTEM_PROMPT, build_user_message
+
+# Reuse clients per API key — avoids TCP reconnect on every request
+_clients: dict[str, anthropic.Anthropic] = {}
+
+
+def _get_client(api_key: str) -> anthropic.Anthropic:
+    if api_key not in _clients:
+        _clients[api_key] = anthropic.Anthropic(api_key=api_key)
+    return _clients[api_key]
 
 
 def tailor_resume(
@@ -26,11 +35,12 @@ def tailor_resume(
 
     user_msg = build_user_message(resume_text, jd_text, feedback=feedback, current_resume=current_resume)
 
-    client = anthropic.Anthropic(api_key=key)
+    client = _get_client(key)
     response = client.messages.create(
         model=model or DEFAULT_MODEL,
-        max_tokens=4096,
-        system=SYSTEM_PROMPT,
+        max_tokens=MAX_OUTPUT_TOKENS,
+        # Prompt caching: system prompt tokens are not re-billed on cache hits (5-min TTL)
+        system=[{"type": "text", "text": SYSTEM_PROMPT, "cache_control": {"type": "ephemeral"}}],
         messages=[{"role": "user", "content": user_msg}],
     )
 
