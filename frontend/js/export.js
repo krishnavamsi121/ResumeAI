@@ -23,188 +23,99 @@
     );
   }
 
-  function exportPDF(text) {
-    try {
-      var jsPDF = window.jspdf && window.jspdf.jsPDF;
-      if (!jsPDF) throw new Error("jsPDF not loaded");
-      var doc = new jsPDF({ unit: "mm", format: "a4" });
-      var marginL = 16, marginR = 16, marginT = 18, marginB = 18;
-      var pageW = doc.internal.pageSize.getWidth();
-      var pageH = doc.internal.pageSize.getHeight();
-      var contentW = pageW - marginL - marginR;
+  // Reorder raw text so SKILLS section appears directly after SUMMARY
+  function reorderSectionsForPDF(text) {
+    var lines = text.split("\n");
+    var sections = [];
+    var currentHeader = null;
+    var currentLines = [];
 
-      function isSectionHeader(line) {
-        return line && line === line.toUpperCase() && /^[A-Z]/.test(line) &&
-               line.trim().length > 2 && line.trim().length < 60 && !/[•\-\*]/.test(line);
-      }
-      function isBullet(line) { return /^\s*[•\-\*]/.test(line); }
-      function isCompanyLine(line) {
-        return /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/i.test(line) ||
-               /\b(Present|Current)\b/i.test(line);
-      }
-      function isJobTitle(line, nextLine) {
-        return nextLine && !isSectionHeader(line) && !isBullet(line) && !isCompanyLine(line) &&
-               (isCompanyLine(nextLine));
-      }
-
-      function checkPage(y, needed) {
-        if (y + needed > pageH - marginB) { doc.addPage(); return marginT; }
-        return y;
-      }
-
-      var lines = text.split("\n");
-      var y = marginT;
-      var lineIdx = 0;
-
-      // ── Name ─────────────────────────────────────────────────────────────────
-      while (lineIdx < lines.length && !lines[lineIdx].trim()) lineIdx++;
-      if (lineIdx < lines.length) {
-        doc.setFont("helvetica", "bold");
-        doc.setFontSize(18);
-        y = checkPage(y, 9);
-        doc.text(lines[lineIdx].trim(), marginL, y);
-        y += 9;
-        lineIdx++;
-      }
-
-      // ── Contact line ─────────────────────────────────────────────────────────
-      if (lineIdx < lines.length && lines[lineIdx].trim()) {
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.setTextColor(80, 80, 80);
-        y = checkPage(y, 5);
-        doc.text(lines[lineIdx].trim(), marginL, y);
-        y += 6;
-        lineIdx++;
-      }
-      doc.setTextColor(0, 0, 0);
-
-      // ── Body ─────────────────────────────────────────────────────────────────
-      while (lineIdx < lines.length) {
-        var line = lines[lineIdx].trimEnd();
-        var trimmed = line.trim();
-        var nextTrimmed = lineIdx + 1 < lines.length ? lines[lineIdx + 1].trim() : "";
-
-        // Empty line
-        if (!trimmed) { y += 2.5; lineIdx++; continue; }
-
-        // Section header
-        if (isSectionHeader(trimmed)) {
-          y += 3;
-          y = checkPage(y, 8);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(10);
-          doc.setTextColor(0, 0, 0);
-          doc.text(trimmed, marginL, y);
-          y += 1.5;
-          // Underline rule
-          doc.setDrawColor(0, 0, 0);
-          doc.setLineWidth(0.4);
-          doc.line(marginL, y, pageW - marginR, y);
-          y += 4;
-          lineIdx++;
-          continue;
-        }
-
-        // Job title (next line has date)
-        if (isJobTitle(trimmed, nextTrimmed)) {
-          y = checkPage(y, 6);
-          var parts = trimmed.split(/\t+/);
-          var titleText = parts[0].trim();
-          var locText = parts[1] ? parts[1].trim() : "";
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(10.5);
-          doc.setTextColor(0, 0, 0);
-          doc.text(titleText, marginL, y);
-          if (locText) {
-            doc.setFont("helvetica", "normal");
-            doc.setFontSize(9);
-            doc.setTextColor(80, 80, 80);
-            doc.text(locText, pageW - marginR, y, { align: "right" });
-          }
-          doc.setTextColor(0, 0, 0);
-          y += 5.5;
-          lineIdx++;
-          continue;
-        }
-
-        // Company + date
-        if (isCompanyLine(trimmed)) {
-          y = checkPage(y, 5);
-          var parts2 = trimmed.split(/\t+/);
-          var company = parts2[0].trim();
-          var dateStr = parts2[1] ? parts2[1].trim() : "";
-          if (!dateStr) {
-            var m = trimmed.match(/^(.+?)\s{2,}(.+)$/);
-            if (m) { company = m[1].trim(); dateStr = m[2].trim(); }
-          }
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(9.5);
-          doc.setTextColor(0, 0, 0);
-          doc.text(company, marginL, y);
-          if (dateStr) {
-            doc.setFont("helvetica", "italic");
-            doc.setFontSize(9);
-            doc.setTextColor(90, 90, 90);
-            doc.text(dateStr, pageW - marginR, y, { align: "right" });
-          }
-          doc.setTextColor(0, 0, 0);
-          y += 5;
-          lineIdx++;
-          continue;
-        }
-
-        // Bullet
-        if (isBullet(line)) {
-          doc.setFont("helvetica", "normal");
-          doc.setFontSize(9);
-          doc.setTextColor(0, 0, 0);
-          var bulletText = "• " + trimmed.replace(/^\s*[•\-\*]\s*/, "");
-          var bulletIndent = marginL + 4;
-          var bulletW = contentW - 4;
-          var wrapped = doc.splitTextToSize(bulletText, bulletW);
-          for (var w = 0; w < wrapped.length; w++) {
-            y = checkPage(y, 4.5);
-            doc.text(wrapped[w], w === 0 ? bulletIndent : bulletIndent + 3, y);
-            y += 4.5;
-          }
-          lineIdx++;
-          continue;
-        }
-
-        // Sub-label (e.g. "Responsibilities:")
-        if (/:\s*$/.test(trimmed) && trimmed.length < 60) {
-          y = checkPage(y, 5);
-          doc.setFont("helvetica", "bold");
-          doc.setFontSize(9.5);
-          doc.setTextColor(0, 0, 0);
-          doc.text(trimmed, marginL, y);
-          y += 5;
-          lineIdx++;
-          continue;
-        }
-
-        // Default text
-        doc.setFont("helvetica", "normal");
-        doc.setFontSize(9);
-        doc.setTextColor(0, 0, 0);
-        var wrapped2 = doc.splitTextToSize(trimmed, contentW);
-        for (var w2 = 0; w2 < wrapped2.length; w2++) {
-          y = checkPage(y, 4.5);
-          doc.text(wrapped2[w2], marginL, y);
-          y += 4.5;
-        }
-        y += 1;
-        lineIdx++;
-      }
-
-      var firstLine = text.split("\n").find(function (l) { return l.trim(); });
-      var safeName = (firstLine || "resume").replace(/[^a-zA-Z0-9\s]/g, "").trim().slice(0, 30).replace(/\s+/g, "-").toLowerCase();
-      doc.save(safeName + "-tailored.pdf");
-    } catch (err) {
-      console.error("PDF export error:", err);
-      utils.showToast("PDF export failed. Try HTML export instead.", "error");
+    function isSectionHdr(t) {
+      return t && t === t.toUpperCase() && /^[A-Z]/.test(t) && t.length > 2 && t.length < 60 && !/[•\-\*]/.test(t);
     }
+
+    for (var i = 0; i < lines.length; i++) {
+      var t = lines[i].trim();
+      if (isSectionHdr(t)) {
+        sections.push({ header: currentHeader, lines: currentLines });
+        currentHeader = t;
+        currentLines = [];
+      } else {
+        currentLines.push(lines[i]);
+      }
+    }
+    sections.push({ header: currentHeader, lines: currentLines });
+
+    var summaryIdx = -1, skillsIdx = -1;
+    for (var j = 0; j < sections.length; j++) {
+      var h = sections[j].header;
+      if (h && /^SUMMARY/i.test(h)) summaryIdx = j;
+      if (h && /^SKILL/i.test(h)) skillsIdx = j;
+    }
+    if (summaryIdx >= 0 && skillsIdx >= 0 && skillsIdx !== summaryIdx + 1) {
+      var moved = sections.splice(skillsIdx, 1)[0];
+      summaryIdx = -1;
+      for (var k = 0; k < sections.length; k++) {
+        if (sections[k].header && /^SUMMARY/i.test(sections[k].header)) { summaryIdx = k; break; }
+      }
+      if (summaryIdx >= 0) sections.splice(summaryIdx + 1, 0, moved);
+    }
+
+    var result = [];
+    for (var m = 0; m < sections.length; m++) {
+      if (sections[m].header) result.push(sections[m].header);
+      result = result.concat(sections[m].lines);
+    }
+    return result.join("\n");
+  }
+
+  function exportPDF(text) {
+    var previewEl = document.getElementById("resume-formatted-view");
+    if (!previewEl || !previewEl.innerHTML.trim()) {
+      utils.showToast("No formatted preview to export", "error");
+      return;
+    }
+    var html = previewEl.innerHTML;
+
+    var printDoc = '<!DOCTYPE html><html lang="en"><head>' +
+      '<meta charset="UTF-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<title>Resume</title>' +
+      '<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">' +
+      '<style>' +
+      '@page { size: A4; margin: 18mm 16mm; }' +
+      '* { box-sizing: border-box; margin: 0; padding: 0; }' +
+      'body { font-family: \'Inter\', system-ui, sans-serif; font-size: 13px; line-height: 1.6; color: #0F1117; -webkit-print-color-adjust: exact; print-color-adjust: exact; }' +
+      'ul { margin: 4px 0; padding-left: 20px; }' +
+      '.rf-name { font-size: 22px; font-weight: 700; letter-spacing: -0.5px; margin-bottom: 4px; }' +
+      '.rf-contact { font-size: 12px; color: #5A6070; margin-bottom: 12px; line-height: 1.6; }' +
+      '.rf-section { margin-bottom: 18px; }' +
+      '.rf-section-head { font-size: 14px; font-weight: 700; letter-spacing: 1.2px; text-transform: uppercase; color: #6366F1; padding-bottom: 5px; margin-bottom: 8px; border-bottom: 1.5px solid #C4C6FD; }' +
+      '.rf-job-title { font-size: 14px; font-weight: 600; margin-top: 6px; }' +
+      '.rf-job-meta { font-size: 12px; color: #5A6070; margin-bottom: 5px; }' +
+      '.rf-bullets { padding-left: 20px; list-style-type: disc; margin-bottom: 13px;}' +
+      '.rf-bullets li { font-size: 13px; margin-bottom: 3px; line-height: 1.55; list-style-type: disc; }' +
+      '.rf-paragraph { font-size: 13px; line-height: 1.65; }' +
+      '.rf-skill-category { display: flex; flex-wrap: wrap; align-items: baseline; gap: 5px; row-gap: 5px; margin-bottom: 8px; }' +
+      '.rf-skill-cat-label { font-size: 12px; font-weight: 700; color: #5A6070; white-space: nowrap; flex-shrink: 0; }' +
+      '.rf-skill-chip { font-size: 11px; padding: 2px 8px; border-radius: 20px; background: #EEEEFF; border: 1px solid #C4C6FD; color: #6366F1; font-weight: 500; display: inline-block; }' +
+      '.rf-skills-grid { display: flex; flex-wrap: wrap; gap: 5px; }' +
+      '</style>' +
+      '</head><body>' + html + '</body></html>';
+
+    var win = window.open('', '_blank');
+    if (!win) {
+      utils.showToast("Pop-up blocked — please allow pop-ups and try again", "error");
+      return;
+    }
+    win.document.write(printDoc);
+    win.document.close();
+    win.focus();
+    // Wait for fonts to load before printing
+    setTimeout(function() {
+      win.print();
+      setTimeout(function() { win.close(); }, 500);
+    }, 600);
   }
 
   function exportDOCX(text) {
