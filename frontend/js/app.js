@@ -68,7 +68,7 @@
     var input = document.getElementById("api-key-input");
     var sel = document.getElementById("api-model-select");
     if (input) input.value = S.apiKey || "";
-    if (sel) sel.value = S.preferredModel || "claude-sonnet-4-20250514";
+    if (sel) sel.value = S.preferredModel || "claude-opus-4-6";
     var modal = document.getElementById("api-modal");
     if (modal) modal.classList.add("open");
     setTimeout(function () { if (input) input.focus(); }, 100);

@@ -5,185 +5,297 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>ResumeAI — Tailor Your Resume</title>
   <link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="/css/base.css">
-  <link rel="stylesheet" href="/css/layout.css">
-  <link rel="stylesheet" href="/css/components.css">
-  <link rel="stylesheet" href="/css/steps.css">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            ink:     { DEFAULT: '#0F1117', 2: '#5A6070', 3: '#9098A8' },
+            surface: { DEFAULT: '#FFFFFF', 2: '#F0F2F7', 3: '#E4E7EF' },
+            border:  { DEFAULT: '#DDE1EC', 2: '#C8CEDC' },
+            indigo:  { DEFAULT: '#6366F1', bg: '#EEEEFF', bd: '#C4C6FD' },
+          },
+          fontFamily: {
+            sans:  ['Inter', 'system-ui', 'sans-serif'],
+            serif: ['Instrument Serif', 'serif'],
+            mono:  ['JetBrains Mono', 'monospace'],
+          },
+          backgroundImage: {
+            'accent-grad': 'linear-gradient(135deg, #6366F1, #8B5CF6)',
+          },
+        }
+      }
+    }
+  </script>
+  <link rel="stylesheet" href="/css/custom.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 </head>
-<body>
-  <div class="app-shell">
-    <nav class="topnav">
-      <div class="brand">
-        <div class="brand-icon">R</div>
+<body class="bg-[#F4F6FA] text-ink font-sans min-h-screen">
+  <div class="flex flex-col min-h-screen">
+
+    <!-- ===== Topnav ===== -->
+    <nav class="h-[60px] sticky top-0 z-50 flex items-center justify-between px-6 bg-white/90 backdrop-blur-lg border-b border-border shadow-sm">
+      <div class="flex items-center gap-2.5 font-bold text-[15px] tracking-tight text-ink">
+        <div class="w-[30px] h-[30px] rounded-lg bg-accent-grad flex items-center justify-center text-white shadow-[0_2px_8px_rgba(99,102,241,0.35)]">
+          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" aria-hidden="true">
+            <path d="M8 1L9.6 6.4L15 8L9.6 9.6L8 15L6.4 9.6L1 8L6.4 6.4L8 1Z" fill="white"/>
+          </svg>
+        </div>
         ResumeAI
       </div>
-      <div class="nav-right">
-        <button class="api-key-btn" id="api-key-btn" type="button">
-          <span class="api-key-dot" id="api-dot"></span>
+      <div class="flex items-center gap-3">
+        <button class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-full text-[12px] font-medium text-ink-2 border border-border bg-white shadow-sm hover:border-indigo hover:text-indigo hover:shadow-[0_0_0_3px_rgba(99,102,241,0.15)] transition-all" id="api-key-btn" type="button">
+          <span class="api-key-dot w-[7px] h-[7px] rounded-full bg-ink-3 flex-shrink-0 transition-colors" id="api-dot"></span>
           <span id="api-key-label">Set API Key</span>
         </button>
       </div>
     </nav>
 
-    <div class="stepbar">
-      <div class="step-item active" id="si1" data-step="1">
-        <div class="step-badge">1</div> Upload &amp; Input
+    <!-- ===== Step bar ===== -->
+    <div class="h-[52px] sticky top-[60px] z-40 bg-white border-b border-border flex items-center px-3 gap-0.5 overflow-x-auto stepbar-scroll">
+      <div class="step-item flex items-center gap-2 px-3.5 py-1.5 whitespace-nowrap text-[12.5px] font-medium text-ink-3 rounded-full transition-all duration-150 select-none active" id="si1" data-step="1">
+        <div class="step-badge w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px] font-bold flex-shrink-0 font-mono transition-all">1</div>
+        Upload &amp; Input
       </div>
-      <div class="step-divider">›</div>
-      <div class="step-item" id="si2"><div class="step-badge">2</div> AI Tailoring</div>
-      <div class="step-divider">›</div>
-      <div class="step-item" id="si3" data-step="3">
-        <div class="step-badge">3</div> Review &amp; Refine
+      <div class="text-border-2 mx-0.5 text-sm flex-shrink-0 select-none">›</div>
+      <div class="step-item flex items-center gap-2 px-3.5 py-1.5 whitespace-nowrap text-[12.5px] font-medium text-ink-3 rounded-full transition-all duration-150 select-none" id="si2">
+        <div class="step-badge w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px] font-bold flex-shrink-0 font-mono transition-all">2</div>
+        AI Tailoring
       </div>
-      <div class="step-divider">›</div>
-      <div class="step-item" id="si4" data-step="4">
-        <div class="step-badge">4</div> Export
+      <div class="text-border-2 mx-0.5 text-sm flex-shrink-0 select-none">›</div>
+      <div class="step-item flex items-center gap-2 px-3.5 py-1.5 whitespace-nowrap text-[12.5px] font-medium text-ink-3 rounded-full transition-all duration-150 select-none" id="si3" data-step="3">
+        <div class="step-badge w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px] font-bold flex-shrink-0 font-mono transition-all">3</div>
+        Review &amp; Refine
+      </div>
+      <div class="text-border-2 mx-0.5 text-sm flex-shrink-0 select-none">›</div>
+      <div class="step-item flex items-center gap-2 px-3.5 py-1.5 whitespace-nowrap text-[12.5px] font-medium text-ink-3 rounded-full transition-all duration-150 select-none" id="si4" data-step="4">
+        <div class="step-badge w-5 h-5 rounded-full border border-current flex items-center justify-center text-[10px] font-bold flex-shrink-0 font-mono transition-all">4</div>
+        Export
       </div>
     </div>
 
-    <main class="page-content">
-      <!-- Panel 1: Input -->
+    <!-- ===== Main content ===== -->
+    <main class="flex-1 max-w-[1200px] mx-auto w-full px-6 py-9 pb-20">
+
+      <!-- ===== Panel 1: Upload & Input ===== -->
       <div class="panel active" id="panel1">
-        <div class="page-header">
-          <div class="page-eyebrow">Step 1 of 4</div>
-          <h1 class="page-title">Upload resume &amp; <em>job description</em></h1>
-          <p class="page-desc">Upload a PDF, Word doc, or paste text. Then add the job description — we'll tailor every section.</p>
+        <div class="mb-7">
+          <div class="text-[11px] font-semibold uppercase tracking-widest text-indigo mb-1.5">Step 1 of 4</div>
+          <h1 class="page-title font-serif text-[clamp(24px,3.5vw,36px)] leading-[1.15] tracking-tight text-ink">
+            Upload resume &amp; <em>job description</em>
+          </h1>
+          <p class="text-sm text-ink-2 mt-1.5 leading-relaxed">Upload a PDF, Word doc, or paste text. Then add the job description — we'll tailor every section.</p>
         </div>
-        <div id="api-warning" class="alert alert-warn" style="margin-bottom:18px;display:none">
+
+        <div id="api-warning" class="flex items-start gap-2.5 px-3.5 py-3 rounded-[10px] bg-amber-50 border border-amber-200 text-amber-800 text-[13px] leading-relaxed mb-[18px]" style="display:none">
           <span>⚠️</span>
-          <span>No API key set. <button type="button" id="api-warning-btn" class="link-btn">Add your Claude API key</button> to enable AI tailoring.</span>
+          <span>No API key set. <button type="button" id="api-warning-btn" class="font-semibold text-indigo underline bg-transparent border-none cursor-pointer p-0">Add your Claude API key</button> to enable AI tailoring.</span>
         </div>
-        <div class="upload-layout">
-          <div>
-            <div class="drop-zone" id="drop-zone">
+
+        <!-- Upload layout grid — align-items: stretch so both columns fill same height -->
+        <div class="grid grid-cols-2 gap-5 mb-5 max-md:grid-cols-1" style="align-items: stretch;">
+
+          <!-- Left column -->
+          <div class="flex flex-col gap-3">
+
+            <!-- Drop zone -->
+            <div class="drop-zone border-2 border-dashed border-border-2 rounded-[18px] bg-white p-9 text-center transition-all hover:border-indigo hover:bg-indigo-bg hover:shadow-[0_0_0_3px_rgba(99,102,241,0.15)]" id="drop-zone">
               <input type="file" id="file-input" accept=".pdf,.doc,.docx,.txt" aria-label="Upload resume">
-              <div class="drop-icon">📄</div>
-              <div class="drop-title">Drop your resume file here</div>
-              <div class="drop-sub">or click to browse</div>
-              <div class="drop-formats">
-                <span class="fmt-tag">PDF</span>
-                <span class="fmt-tag">DOCX</span>
-                <span class="fmt-tag">DOC</span>
-                <span class="fmt-tag">TXT</span>
+              <div class="flex items-center justify-center mb-3">
+                <svg class="drop-icon-svg w-9 h-9 p-2 bg-indigo-bg rounded-full text-indigo transition-all" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+                  <path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/>
+                  <polyline points="14 2 14 8 20 8"/>
+                  <line x1="12" y1="18" x2="12" y2="12"/>
+                  <line x1="9" y1="15" x2="15" y2="15"/>
+                </svg>
+              </div>
+              <div class="text-sm font-semibold mb-1">Drop your resume file here</div>
+              <div class="text-[12.5px] text-ink-2">or click to browse</div>
+              <div class="flex gap-1 justify-center mt-3 flex-wrap">
+                <span class="font-mono text-[10px] px-2 py-0.5 rounded-full border border-border text-ink-3 bg-surface-2 font-medium tracking-wide">PDF</span>
+                <span class="font-mono text-[10px] px-2 py-0.5 rounded-full border border-border text-ink-3 bg-surface-2 font-medium tracking-wide">DOCX</span>
+                <span class="font-mono text-[10px] px-2 py-0.5 rounded-full border border-border text-ink-3 bg-surface-2 font-medium tracking-wide">DOC</span>
+                <span class="font-mono text-[10px] px-2 py-0.5 rounded-full border border-border text-ink-3 bg-surface-2 font-medium tracking-wide">TXT</span>
               </div>
             </div>
-            <div class="file-strip" id="file-strip">
-              <span class="file-strip-icon" id="fs-icon">📄</span>
-              <div class="file-strip-info">
-                <div class="file-strip-name" id="fs-name">—</div>
-                <div class="file-strip-meta" id="fs-meta">—</div>
+
+            <!-- File strip (hidden until file loaded) -->
+            <div class="file-strip items-center gap-3 px-3.5 py-2.5 bg-green-50 border border-green-200 rounded-[10px]" id="file-strip">
+              <span class="text-[22px] flex-shrink-0" id="fs-icon">📄</span>
+              <div class="flex-1 min-w-0">
+                <div class="text-[13px] font-semibold whitespace-nowrap overflow-hidden text-ellipsis" id="fs-name">—</div>
+                <div class="text-[11px] text-ink-2 font-mono mt-px" id="fs-meta">—</div>
               </div>
-              <button type="button" class="file-strip-remove" id="file-strip-remove" title="Remove">✕</button>
+              <button type="button" class="w-6 h-6 rounded-[6px] flex-shrink-0 flex items-center justify-center text-red-600 bg-red-50 border border-red-200 cursor-pointer text-[12px] hover:bg-red-100 transition-all" id="file-strip-remove" title="Remove">✕</button>
             </div>
-            <div class="divider-or">or paste as text</div>
-            <div class="card">
-              <div class="card-head">
-                ✏️ Resume Text
-                <span class="badge-pill" id="resume-char-badge">0 chars</span>
+
+            <!-- Divider -->
+            <div class="divider-or text-[11px] font-medium text-ink-3 font-mono">or paste as text</div>
+
+            <!-- Resume text card -->
+            <div class="bg-white border border-border rounded-[18px] overflow-hidden shadow-sm hover:shadow-md hover:border-border-2 transition-all">
+              <div class="flex items-center gap-2 px-4 py-3 bg-surface-2 border-b border-border text-[13px] font-semibold text-ink">
+                <svg class="text-indigo flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                Resume Text
+                <span class="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-indigo-bg text-indigo border border-indigo-bd" id="resume-char-badge">0 chars</span>
               </div>
-              <textarea class="textarea-bare" id="resume-text" rows="10" placeholder="Paste or upload resume..."></textarea>
-              <div class="char-count" id="resume-char-count">0 characters</div>
+              <textarea class="w-full border-none outline-none resize-none font-mono text-[12.5px] leading-[1.7] text-ink bg-transparent p-4 placeholder-ink-3" id="resume-text" rows="10" placeholder="Paste or upload resume..."></textarea>
+              <div class="text-[11px] text-ink-3 font-mono px-4 py-1.5 text-right border-t border-border" id="resume-char-count">0 characters</div>
             </div>
           </div>
-          <div class="card card-flex">
-            <div class="card-head card-head-jd">
-              🎯 Job Description
-              <span class="badge-pill" id="jd-char-badge">0 chars</span>
+
+          <!-- Right column: JD card — flex column so textarea fills full height -->
+          <div class="flex flex-col bg-white border border-border rounded-[18px] overflow-hidden shadow-sm hover:shadow-md hover:border-border-2 transition-all">
+            <div class="flex items-center gap-2 px-4 py-3 bg-gradient-to-br from-amber-50 to-amber-100 border-b border-border text-[13px] font-semibold text-ink">
+              <svg class="text-amber-500 flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
+              Job Description
+              <span class="ml-auto text-[10px] font-medium px-1.5 py-0.5 rounded-full bg-amber-100 text-amber-700 border border-amber-300" id="jd-char-badge">0 chars</span>
             </div>
-            <textarea class="textarea-bare" id="jd-text" placeholder="Paste job description..."></textarea>
-            <div class="char-count" id="jd-char-count">0 characters</div>
+            <!-- flex-1 min-h-0 = Tailwind flex: 1 1 0% which overrides rows intrinsic height -->
+            <textarea class="flex-1 min-h-0 border-none outline-none resize-none font-mono text-[12.5px] leading-[1.7] text-ink bg-transparent p-4 placeholder-ink-3" id="jd-text" placeholder="Paste job description..."></textarea>
+            <div class="text-[11px] text-ink-3 font-mono px-4 py-1.5 text-right border-t border-border" id="jd-char-count">0 characters</div>
           </div>
         </div>
-        <button type="button" class="btn btn-primary btn-lg btn-block" id="start-btn">✦ Analyze &amp; Tailor My Resume</button>
+
+        <!-- Tailor button -->
+        <button type="button" class="btn-primary w-full flex items-center justify-center gap-2 px-6 py-3.5 rounded-xl bg-accent-grad text-white font-semibold text-[15px] shadow-[0_1px_3px_rgba(99,102,241,0.3)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.45)] hover:-translate-y-px transition-all" id="start-btn">
+          <svg width="15" height="15" viewBox="0 0 16 16" fill="none" aria-hidden="true"><path d="M8 1L9.6 6.4L15 8L9.6 9.6L8 15L6.4 9.6L1 8L6.4 6.4L8 1Z" fill="currentColor"/></svg>
+          Tailor My Resume with AI
+        </button>
       </div>
 
-      <!-- Panel 2: Processing -->
+      <!-- ===== Panel 2: Processing ===== -->
       <div class="panel" id="panel2">
-        <div class="processing-center">
+        <div class="flex flex-col items-center justify-center min-h-[480px] gap-6 text-center">
           <div class="spinner" id="proc-spinner"></div>
           <div>
-            <div class="proc-title">Tailoring your resume…</div>
-            <div class="proc-sub" id="proc-sub">Reading content</div>
+            <div class="font-serif text-[26px] tracking-tight">Tailoring your resume…</div>
+            <div class="text-[13px] text-ink-2 font-mono mt-1" id="proc-sub">Reading content</div>
           </div>
-          <div class="proc-log" id="proc-log"></div>
-          <button type="button" class="btn btn-secondary" id="cancel-btn" style="display:none">Cancel</button>
+          <div class="proc-log w-full max-w-[520px] bg-[#0F1117] rounded-[14px] p-5 text-left min-h-[140px] relative overflow-hidden" id="proc-log"></div>
+          <button type="button" class="inline-flex items-center gap-2 px-[18px] py-[9px] rounded-[10px] text-[13.5px] font-semibold bg-white text-ink border border-border shadow-sm hover:bg-surface-2 hover:border-border-2 transition-all" id="cancel-btn" style="display:none">Cancel</button>
         </div>
       </div>
 
-      <!-- Panel 3: Review -->
+      <!-- ===== Panel 3: Review & Refine ===== -->
       <div class="panel" id="panel3">
-        <div class="page-header">
-          <div class="page-eyebrow">Step 3 of 4</div>
-          <h1 class="page-title">Review your <em>tailored resume</em></h1>
-          <p class="page-desc">Check every section. Edit directly or ask Claude to make specific changes.</p>
+        <div class="mb-7">
+          <div class="text-[11px] font-semibold uppercase tracking-widest text-indigo mb-1.5">Step 3 of 4</div>
+          <h1 class="page-title font-serif text-[clamp(24px,3.5vw,36px)] leading-[1.15] tracking-tight text-ink">
+            Review your <em>tailored resume</em>
+          </h1>
+          <p class="text-sm text-ink-2 mt-1.5 leading-relaxed">Check every section. Edit directly or ask Claude to make specific changes.</p>
         </div>
-        <div class="review-layout">
+
+        <div class="grid gap-5 items-start max-lg:grid-cols-1" style="grid-template-columns: 1fr 340px;">
+
+          <!-- Main: Resume document -->
           <div>
-            <div class="resume-doc">
-              <div class="resume-doc-toolbar">
-                <span class="doc-toolbar-title">📄 Tailored Resume</span>
-                <div class="doc-toolbar-actions">
-                  <button type="button" class="btn btn-secondary btn-sm" id="copy-resume-btn">📋 Copy</button>
+            <div class="bg-white border border-border rounded-[18px] shadow-xl overflow-hidden">
+              <!-- Toolbar -->
+              <div class="flex items-center gap-2 px-4 py-2.5 bg-surface-2 border-b border-border">
+                <span class="text-[13px] font-semibold flex-1 flex items-center gap-1.5">
+                  <svg class="text-indigo flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/></svg>
+                  Tailored Resume
+                </span>
+                <div class="flex gap-1.5">
+                  <button type="button" class="inline-flex items-center gap-1.5 px-2.5 py-1.5 rounded-[8px] text-[12px] font-semibold bg-white text-ink border border-border shadow-sm hover:bg-surface-2 hover:border-border-2 transition-all" id="copy-resume-btn">
+                    <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+                    Copy
+                  </button>
                 </div>
               </div>
-              <div class="tab-bar">
-                <button type="button" class="tab-btn active" data-tab="formatted">📋 Formatted Preview</button>
-                <button type="button" class="tab-btn" data-tab="raw">✏️ Edit Raw Text</button>
+              <!-- Tab bar -->
+              <div class="flex gap-0.5 p-1.5 bg-surface-2 border-b border-border">
+                <button type="button" class="tab-btn flex items-center gap-1.5 px-3.5 py-1.5 text-[12.5px] font-medium text-ink-2 rounded-[8px] cursor-pointer transition-all active" data-tab="formatted">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="3" y="3" width="18" height="18" rx="2"/><line x1="3" y1="9" x2="21" y2="9"/><line x1="9" y1="21" x2="9" y2="9"/></svg>
+                  Formatted Preview
+                </button>
+                <button type="button" class="tab-btn flex items-center gap-1.5 px-3.5 py-1.5 text-[12.5px] font-medium text-ink-2 rounded-[8px] cursor-pointer transition-all" data-tab="raw">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/><path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/></svg>
+                  Edit Raw Text
+                </button>
               </div>
+              <!-- Tab: Formatted -->
               <div class="tab-panel active" id="tab-formatted">
-                <div class="resume-formatted" id="resume-formatted-view"></div>
+                <div class="px-12 py-10 text-[13.5px] leading-[1.7] min-h-[500px] max-h-[720px] overflow-y-auto text-ink max-sm:px-6" id="resume-formatted-view"></div>
               </div>
+              <!-- Tab: Raw -->
               <div class="tab-panel" id="tab-raw">
-                <div class="resume-raw">
-                  <textarea id="raw-resume-textarea"></textarea>
-                </div>
+                <textarea class="w-full min-h-[560px] max-h-[720px] border-none outline-none resize-none font-mono text-[12.5px] leading-[1.75] text-ink bg-white px-8 py-7" id="raw-resume-textarea"></textarea>
               </div>
             </div>
-            <div class="btn-row" style="margin-top:16px">
-              <button type="button" class="btn btn-success btn-lg" id="go-export-btn">✓ Looks good — Export Resume</button>
-              <button type="button" class="btn btn-secondary" id="start-over-btn">← Start over</button>
+
+            <div class="flex gap-2.5 items-center flex-wrap mt-4">
+              <button type="button" class="inline-flex items-center gap-1.5 px-6 py-3 rounded-[14px] text-[15px] font-semibold bg-green-50 text-green-700 border border-green-200 hover:bg-green-100 transition-all" id="go-export-btn">
+                <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+                Looks good — Export Resume
+              </button>
+              <button type="button" class="inline-flex items-center gap-1.5 px-[18px] py-[9px] rounded-[10px] text-[13.5px] font-semibold bg-white text-ink border border-border shadow-sm hover:bg-surface-2 hover:border-border-2 transition-all" id="start-over-btn">← Start over</button>
             </div>
           </div>
-          <div class="sidebar">
-            <div class="card">
-              <div class="card-head">📊 Match Score</div>
-              <div class="score-widget">
-                <div class="score-ring-wrap">
-                  <svg width="96" height="96" viewBox="0 0 96 96" aria-hidden="true">
-                    <circle cx="48" cy="48" r="40" fill="none" stroke="#E2DDD6" stroke-width="8"/>
-                    <circle cx="48" cy="48" r="40" fill="none" stroke="#2563EB" stroke-width="8" stroke-dasharray="251.3" stroke-dashoffset="251.3" stroke-linecap="round" id="score-arc"/>
+
+          <!-- Sidebar -->
+          <div class="flex flex-col gap-4 sticky top-32">
+
+            <!-- Score card -->
+            <div class="bg-white border border-border rounded-[18px] overflow-hidden shadow-sm hover:shadow-md hover:border-border-2 transition-all">
+              <div class="flex items-center gap-2 px-4 py-3 bg-surface-2 border-b border-border text-[13px] font-semibold text-ink">
+                <svg class="text-indigo flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg>
+                Match Score
+              </div>
+              <div class="flex flex-col items-center px-4 py-5 text-center">
+                <div class="relative w-24 h-24 mb-3">
+                  <svg width="96" height="96" viewBox="0 0 96 96" class="-rotate-90" aria-hidden="true">
+                    <circle cx="48" cy="48" r="40" fill="none" stroke="#DDE1EC" stroke-width="8"/>
+                    <circle cx="48" cy="48" r="40" fill="none" stroke="#6366F1" stroke-width="8" stroke-dasharray="251.3" stroke-dashoffset="251.3" stroke-linecap="round" id="score-arc" style="transition: stroke-dashoffset 0.8s ease"/>
                   </svg>
-                  <div class="score-ring-inner">
-                    <div class="score-number" id="score-number">—</div>
-                    <div class="score-sublabel">Match</div>
+                  <div class="absolute inset-0 flex flex-col items-center justify-center">
+                    <div class="text-[28px] font-extrabold tracking-tight leading-none" id="score-number">—</div>
+                    <div class="text-[9px] font-semibold tracking-[1.5px] text-ink-3 uppercase">Match</div>
                   </div>
                 </div>
-                <div class="score-caption" id="score-caption">—</div>
+                <div class="text-[12.5px] text-ink-2 leading-snug" id="score-caption">—</div>
               </div>
             </div>
-            <div class="card">
-              <div class="card-head">🔍 Skill Analysis</div>
-              <div class="skill-analysis-body">
-                <div class="skill-section-label">✓ Already matched</div>
-                <div class="skill-chips" id="matched-skills"></div>
-                <div class="skill-section-label">+ Added / highlighted</div>
-                <div class="skill-chips" id="added-skills"></div>
+
+            <!-- Skill analysis card -->
+            <div class="bg-white border border-border rounded-[18px] overflow-hidden shadow-sm hover:shadow-md hover:border-border-2 transition-all">
+              <div class="flex items-center gap-2 px-4 py-3 bg-surface-2 border-b border-border text-[13px] font-semibold text-ink">
+                <svg class="text-indigo flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                Skill Analysis
+              </div>
+              <div class="px-4 py-3.5">
+                <div class="text-[11px] font-semibold text-ink-3 uppercase tracking-wide mb-1.5">✓ Already matched</div>
+                <div class="flex flex-wrap gap-1.5 mb-3" id="matched-skills"></div>
+                <div class="text-[11px] font-semibold text-ink-3 uppercase tracking-wide mb-1.5">+ Added / highlighted</div>
+                <div class="flex flex-wrap gap-1.5" id="added-skills"></div>
               </div>
             </div>
-            <div class="card">
-              <div class="card-head">✏️ Changes Made</div>
-              <div class="card-body" id="changes-list"></div>
+
+            <!-- Changes made card -->
+            <div class="bg-white border border-border rounded-[18px] overflow-hidden shadow-sm hover:shadow-md hover:border-border-2 transition-all">
+              <div class="flex items-center gap-2 px-4 py-3 bg-surface-2 border-b border-border text-[13px] font-semibold text-ink">
+                <svg class="text-indigo flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="9 11 12 14 22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>
+                Changes Made
+              </div>
+              <div class="px-4 py-3" id="changes-list"></div>
             </div>
-            <div class="card">
-              <div class="card-head">💬 Request Changes</div>
-              <div class="card-body">
-                <label class="form-label" for="remod-text">Tell Claude what to modify:</label>
-                <textarea class="remod-textarea" id="remod-text" placeholder="e.g. Make the summary 2 sentences max..."></textarea>
-                <div class="quick-prompts" id="quick-prompts"></div>
-                <button type="button" class="btn btn-primary btn-block" id="remod-btn">↺ Re-tailor with this feedback</button>
-                <div id="remod-history" class="remod-history" style="display:none">
-                  <div class="remod-history-label">Previous requests:</div>
+
+            <!-- Request changes card -->
+            <div class="bg-white border border-border rounded-[18px] overflow-hidden shadow-sm hover:shadow-md hover:border-border-2 transition-all">
+              <div class="flex items-center gap-2 px-4 py-3 bg-surface-2 border-b border-border text-[13px] font-semibold text-ink">
+                <svg class="text-indigo flex-shrink-0" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"/></svg>
+                Request Changes
+              </div>
+              <div class="px-4 py-3">
+                <label class="block text-[12px] font-semibold text-ink-2 mb-1.5 tracking-wide" for="remod-text">Tell Claude what to modify:</label>
+                <textarea class="w-full min-h-[90px] border border-border rounded-[10px] px-3 py-2.5 text-[13px] text-ink bg-white resize-y outline-none transition-all focus:border-indigo focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)] leading-snug" id="remod-text" placeholder="e.g. Make the summary 2 sentences max..."></textarea>
+                <div class="flex flex-wrap gap-1 mt-2 mb-2.5" id="quick-prompts"></div>
+                <button type="button" class="btn-primary w-full flex items-center justify-center gap-2 px-4 py-2.5 rounded-[10px] bg-accent-grad text-white font-semibold text-[13.5px] shadow-[0_1px_3px_rgba(99,102,241,0.3)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.45)] hover:-translate-y-px transition-all" id="remod-btn">↺ Re-tailor with this feedback</button>
+                <div id="remod-history" class="mt-2.5" style="display:none">
+                  <div class="text-[11px] text-ink-3 mb-1 font-medium">Previous requests:</div>
                   <div id="remod-history-list"></div>
                 </div>
               </div>
@@ -192,87 +304,114 @@
         </div>
       </div>
 
-      <!-- Panel 4: Export -->
+      <!-- ===== Panel 4: Export ===== -->
       <div class="panel" id="panel4">
-        <div class="export-layout">
-          <div class="export-hero">
-            <div class="export-hero-emoji">🎉</div>
-            <h2>Your resume is ready!</h2>
-            <p>Download in your preferred format. All exports include your latest edits.</p>
+        <div class="max-w-[720px] mx-auto">
+          <!-- Hero -->
+          <div class="text-center py-8 pb-10">
+            <div class="w-16 h-16 rounded-full bg-accent-grad flex items-center justify-center mx-auto mb-4 shadow-[0_8px_24px_rgba(99,102,241,0.35)]">
+              <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="20 6 9 17 4 12"/></svg>
+            </div>
+            <h2 class="font-serif text-[32px] tracking-tight mb-2">Your resume is ready!</h2>
+            <p class="text-sm text-ink-2">Download in your preferred format. All exports include your latest edits.</p>
           </div>
-          <div class="export-status alert-success" id="export-status"></div>
-          <div class="export-formats">
-            <div class="export-card" data-export="txt">
-              <div class="export-card-icon export-icon-txt">📝</div>
+
+          <div class="export-status px-4 py-3 rounded-[10px] text-[13px] font-medium text-center mb-4 bg-green-50 border border-green-200 text-green-800" id="export-status"></div>
+
+          <!-- Export cards -->
+          <div class="grid grid-cols-2 gap-3 mb-6 max-sm:grid-cols-1">
+            <div class="export-card flex items-center gap-3.5 bg-white border border-border rounded-[14px] p-5 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0" style="border-left: 3px solid #6366F1;" data-export="txt">
+              <div class="w-11 h-11 rounded-[10px] flex items-center justify-center flex-shrink-0 bg-[#eef0ff] text-indigo">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg>
+              </div>
               <div>
-                <h4>Plain Text (.txt)</h4>
-                <p>ATS-safe, paste anywhere</p>
+                <h4 class="text-[13.5px] font-bold mb-0.5">Plain Text (.txt)</h4>
+                <p class="text-[11.5px] text-ink-2">ATS-safe, paste anywhere</p>
               </div>
             </div>
-            <div class="export-card" data-export="html">
-              <div class="export-card-icon export-icon-html">🌐</div>
+
+            <div class="export-card flex items-center gap-3.5 bg-white border border-border rounded-[14px] p-5 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0" style="border-left: 3px solid #F59E0B;" data-export="html">
+              <div class="w-11 h-11 rounded-[10px] flex items-center justify-center flex-shrink-0 bg-amber-50 text-amber-500">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+              </div>
               <div>
-                <h4>Web Page (.html)</h4>
-                <p>Formatted, print-ready</p>
+                <h4 class="text-[13.5px] font-bold mb-0.5">Web Page (.html)</h4>
+                <p class="text-[11.5px] text-ink-2">Formatted, print-ready</p>
               </div>
             </div>
-            <div class="export-card" data-export="pdf">
-              <div class="export-card-icon export-icon-pdf">📕</div>
+
+            <div class="export-card flex items-center gap-3.5 bg-white border border-border rounded-[14px] p-5 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0" style="border-left: 3px solid #EF4444;" data-export="pdf">
+              <div class="w-11 h-11 rounded-[10px] flex items-center justify-center flex-shrink-0 bg-red-50 text-red-500">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><path d="M9 13h6M9 17h3"/></svg>
+              </div>
               <div>
-                <h4>PDF Document</h4>
-                <p>Ready to attach and submit</p>
+                <h4 class="text-[13.5px] font-bold mb-0.5">PDF Document</h4>
+                <p class="text-[11.5px] text-ink-2">Ready to attach and submit</p>
               </div>
             </div>
-            <div class="export-card" data-export="docx">
-              <div class="export-card-icon export-icon-docx">📘</div>
+
+            <div class="export-card flex items-center gap-3.5 bg-white border border-border rounded-[14px] p-5 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0" style="border-left: 3px solid #3B82F6;" data-export="docx">
+              <div class="w-11 h-11 rounded-[10px] flex items-center justify-center flex-shrink-0 bg-blue-50 text-blue-500">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8l-6-6z"/><polyline points="14 2 14 8 20 8"/><line x1="8" y1="13" x2="16" y2="13"/><line x1="8" y1="17" x2="16" y2="17"/><line x1="8" y1="9" x2="10" y2="9"/></svg>
+              </div>
               <div>
-                <h4>Word (.docx)</h4>
-                <p>Edit in Word or Google Docs</p>
+                <h4 class="text-[13.5px] font-bold mb-0.5">Word (.docx)</h4>
+                <p class="text-[11.5px] text-ink-2">Edit in Word or Google Docs</p>
               </div>
             </div>
-            <div class="export-card" data-export="copy">
-              <div class="export-card-icon export-icon-copy">📋</div>
+
+            <div class="export-card flex items-center gap-3.5 bg-white border border-border rounded-[14px] p-5 cursor-pointer transition-all hover:shadow-lg hover:-translate-y-0.5 active:translate-y-0" style="border-left: 3px solid #10B981;" data-export="copy">
+              <div class="w-11 h-11 rounded-[10px] flex items-center justify-center flex-shrink-0 bg-emerald-50 text-emerald-600">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2"/><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"/></svg>
+              </div>
               <div>
-                <h4>Copy to Clipboard</h4>
-                <p>Paste into any editor</p>
+                <h4 class="text-[13.5px] font-bold mb-0.5">Copy to Clipboard</h4>
+                <p class="text-[11.5px] text-ink-2">Paste into any editor</p>
               </div>
             </div>
           </div>
-          <div class="btn-row export-actions">
-            <button type="button" class="btn btn-secondary" id="back-review-btn">← Back to review</button>
-            <button type="button" class="btn btn-secondary" id="reset-all-btn">↺ Tailor another resume</button>
+
+          <div class="flex gap-3 items-center justify-center flex-wrap">
+            <button type="button" class="inline-flex items-center gap-1.5 px-[18px] py-[9px] rounded-[10px] text-[13.5px] font-semibold bg-white text-ink border border-border shadow-sm hover:bg-surface-2 hover:border-border-2 transition-all" id="back-review-btn">← Back to review</button>
+            <button type="button" class="inline-flex items-center gap-1.5 px-[18px] py-[9px] rounded-[10px] text-[13.5px] font-semibold bg-white text-ink border border-border shadow-sm hover:bg-surface-2 hover:border-border-2 transition-all" id="reset-all-btn">↺ Tailor another resume</button>
           </div>
         </div>
       </div>
+
     </main>
   </div>
 
+  <!-- ===== API Key Modal ===== -->
   <div class="modal-backdrop" id="api-modal">
-    <div class="modal">
-      <div class="modal-head">
-        <h3>🔑 Claude API Key</h3>
-        <button type="button" class="modal-close" id="modal-close" aria-label="Close">×</button>
+    <div class="bg-white rounded-[24px] w-full max-w-[480px] border border-border overflow-hidden shadow-[0_16px_48px_rgba(15,17,30,0.13),0_4px_14px_rgba(15,17,30,0.08)]" style="animation: modalIn 0.22s cubic-bezier(0.16,1,0.3,1)">
+      <div class="flex items-center justify-between px-6 pt-5 pb-4 border-b border-border" style="background: linear-gradient(135deg, #EEEEFF, #F0F2F7)">
+        <h3 class="text-[16px] font-bold flex items-center gap-2">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M21 2l-2 2m-7.61 7.61a5.5 5.5 0 1 1-7.778 7.778 5.5 5.5 0 0 1 7.777-7.777zm0 0L15.5 7.5m0 0l3 3L22 7l-3-3m-3.5 3.5L19 4"/></svg>
+          Claude API Key
+        </h3>
+        <button type="button" class="w-7 h-7 rounded-[8px] flex items-center justify-center text-ink-2 text-[18px] cursor-pointer bg-white border border-border hover:bg-surface-3 hover:text-ink transition-all" id="modal-close" aria-label="Close">×</button>
       </div>
-      <div class="modal-body">
-        <p class="modal-desc">Enter your Claude API key to enable AI resume tailoring. Your key is stored in this browser and only sent to the API.</p>
-        <label class="form-label" for="api-key-input">API Key</label>
-        <input class="form-input" id="api-key-input" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
-        <div class="form-hint">
-          <label class="form-label" for="api-model-select">Model</label>
-          <select class="form-input" id="api-model-select">
+      <div class="px-6 py-5">
+        <p class="text-[13px] text-ink-2 mb-4 leading-relaxed">Enter your Claude API key to enable AI resume tailoring. Your key is stored in this browser and only sent to the API.</p>
+        <label class="block text-[12px] font-semibold text-ink-2 mb-1.5 tracking-wide" for="api-key-input">API Key</label>
+        <input class="w-full border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-ink bg-white outline-none transition-all focus:border-indigo focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)] placeholder-ink-3" id="api-key-input" type="password" placeholder="sk-ant-..." autocomplete="off" spellcheck="false">
+        <div class="mt-2.5">
+          <label class="block text-[12px] font-semibold text-ink-2 mb-1.5 tracking-wide" for="api-model-select">Model</label>
+          <select class="w-full border border-border rounded-[10px] px-3 py-2.5 text-[13.5px] text-ink bg-white outline-none transition-all focus:border-indigo focus:shadow-[0_0_0_3px_rgba(99,102,241,0.15)]" id="api-model-select">
             <option value="claude-sonnet-4-20250514">Claude Sonnet 4 — Faster, lower cost</option>
-            <option value="claude-opus-4-5">Claude Opus 4.5 — Highest quality</option>
+            <option value="claude-opus-4-6" selected>Claude Opus 4.6 — Highest quality</option>
           </select>
         </div>
-        <p class="form-hint">Get your key at <a href="https://console.anthropic.com/api-keys" target="_blank" rel="noopener">console.anthropic.com</a></p>
+        <p class="mt-2.5 text-[12px] text-ink-3">Get your key at <a href="https://console.anthropic.com/api-keys" target="_blank" rel="noopener" class="text-indigo">console.anthropic.com</a></p>
       </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" id="modal-cancel">Cancel</button>
-        <button type="button" class="btn btn-primary" id="modal-save">Save Key</button>
+      <div class="flex gap-2.5 justify-end px-6 py-4 border-t border-border">
+        <button type="button" class="inline-flex items-center gap-1.5 px-[18px] py-[9px] rounded-[10px] text-[13.5px] font-semibold bg-white text-ink border border-border shadow-sm hover:bg-surface-2 hover:border-border-2 transition-all" id="modal-cancel">Cancel</button>
+        <button type="button" class="btn-primary inline-flex items-center gap-1.5 px-[18px] py-[9px] rounded-[10px] bg-accent-grad text-white font-semibold text-[13.5px] shadow-[0_1px_3px_rgba(99,102,241,0.3)] hover:shadow-[0_6px_20px_rgba(99,102,241,0.45)] hover:-translate-y-px transition-all" id="modal-save">Save Key</button>
       </div>
     </div>
   </div>
 
+  <!-- Toast -->
   <div class="toast" id="toast" role="status" aria-live="polite"></div>
 
   <script src="/js/utils.js"></script>

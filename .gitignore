@@ -31,3 +31,5 @@ Thumbs.db
 uploads/
 tmp/
 *.pyc
+backend/services/__pycache__/prompts.cpython-313.pyc
+backend/services/__pycache__/claude.cpython-313.pyc

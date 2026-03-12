@@ -75,16 +75,17 @@
           utils.esc(sections.summary) +
           "</div></div>";
       }
-      if (sections.experience) {
-        html +=
-          '<div class="rf-section"><div class="rf-section-head">Experience</div><div class="rf-paragraph">' +
-          formatExperience(sections.experience) +
-          "</div></div>";
-      }
+      // Skills before experience (matches Word export order)
       if (sections.skills) {
         html +=
           '<div class="rf-section"><div class="rf-section-head">Skills</div>' +
           formatSkills(sections.skills) +
+          "</div>";
+      }
+      if (sections.experience) {
+        html +=
+          '<div class="rf-section"><div class="rf-section-head">Experience</div>' +
+          formatExperience(sections.experience) +
           "</div>";
       }
       if (sections.education) {
@@ -114,24 +115,40 @@
     var inList = false;
     for (var i = 0; i < lines.length; i++) {
       var trimmed = lines[i].trim();
+      var nextTrimmed = i + 1 < lines.length ? lines[i + 1].trim() : "";
+
+      // Skip empty lines — close list if open, no gap rendered
       if (!trimmed) {
         if (inList) { html += "</ul>"; inList = false; }
-        html += "<br>";
         continue;
       }
+
+      // Explicit bullet char
       if (/^[•\-*]/.test(trimmed)) {
         if (!inList) { html += '<ul class="rf-bullets">'; inList = true; }
         html += "<li>" + utils.esc(trimmed.replace(/^[•\-*]\s*/, "")) + "</li>";
-      } else {
-        if (inList) { html += "</ul>"; inList = false; }
-        if (/[—–-]/.test(trimmed) && (/\d{4}/.test(trimmed))) {
-          var parts = trimmed.split(/[—–-]/);
-          html += '<div class="rf-job-title">' + utils.esc(parts[0].trim()) + "</div>";
-          if (parts[1]) html += '<div class="rf-job-meta">' + utils.esc(parts[1].trim()) + "</div>";
-        } else {
-          html += '<p style="margin-bottom:2px">' + utils.esc(trimmed) + "</p>";
-        }
+        continue;
       }
+
+      // Line containing a date range → company / meta line
+      var hasDate = /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/i.test(trimmed) || /\b(Present|Current)\b/i.test(trimmed);
+      if (hasDate) {
+        if (inList) { html += "</ul>"; inList = false; }
+        html += '<div class="rf-job-meta">' + utils.esc(trimmed) + "</div>";
+        continue;
+      }
+
+      // Next line has a date → this is the job title line
+      var nextHasDate = /\b(Jan|Feb|Mar|Apr|May|Jun|Jul|Aug|Sep|Oct|Nov|Dec)\s+\d{4}/i.test(nextTrimmed) || /\b(Present|Current)\b/i.test(nextTrimmed);
+      if (nextHasDate) {
+        if (inList) { html += "</ul>"; inList = false; }
+        html += '<div class="rf-job-title">' + utils.esc(trimmed) + "</div>";
+        continue;
+      }
+
+      // Everything else: treat as bullet point
+      if (!inList) { html += '<ul class="rf-bullets">'; inList = true; }
+      html += "<li>" + utils.esc(trimmed) + "</li>";
     }
     if (inList) html += "</ul>";
     return html;
@@ -143,25 +160,27 @@
       var lines = t.split("\n").filter(function (l) { return l.trim(); });
       var html = "";
       for (var i = 0; i < lines.length; i++) {
-        if (lines[i].indexOf(":") !== -1) {
-          var parts = lines[i].split(":");
-          var cat = parts[0].trim();
-          var skills = (parts[1] || "").split(/[,•]/).filter(function (s) { return s.trim(); });
-          html +=
-            '<div style="margin-bottom:8px"><span style="font-size:12px;font-weight:600;color:var(--ink2)">' +
-            utils.esc(cat) +
-            ":</span> ";
-          html += skills.map(function (s) { return '<span class="rf-skill-chip">' + utils.esc(s.trim()) + "</span>"; }).join(" ");
-          html += "</div>";
+        var line = lines[i];
+        if (line.indexOf(":") !== -1) {
+          var colonIdx = line.indexOf(":");
+          var cat = line.slice(0, colonIdx).trim();
+          var skillsStr = line.slice(colonIdx + 1).trim();
+          var skills = skillsStr.split(/[,]/).filter(function (s) { return s.trim(); });
+          html += '<div class="rf-skill-category">' +
+                  '<span class="rf-skill-cat-label">' + utils.esc(cat) + ':</span> ' +
+                  skills.map(function (s) { return '<span class="rf-skill-chip">' + utils.esc(s.trim()) + '</span>'; }).join('') +
+                  '</div>';
         } else {
-          var sks = lines[i].split(/[,•]/).filter(function (s) { return s.trim(); });
-          html += sks.map(function (s) { return '<span class="rf-skill-chip">' + utils.esc(s.trim()) + "</span>"; }).join(" ");
+          var sks = line.split(/[,]/).filter(function (s) { return s.trim(); });
+          html += '<div class="rf-skill-category">' +
+                  sks.map(function (s) { return '<span class="rf-skill-chip">' + utils.esc(s.trim()) + '</span>'; }).join('') +
+                  '</div>';
         }
       }
       return html;
     }
     var chips = t.split(/[,\n•]/).map(function (s) { return s.trim(); }).filter(Boolean);
-    return '<div class="rf-skills-grid">' + chips.map(function (s) { return '<span class="rf-skill-chip">' + utils.esc(s) + "</span>"; }).join(" ") + "</div>";
+    return '<div class="rf-skills-grid">' + chips.map(function (s) { return '<span class="rf-skill-chip">' + utils.esc(s) + "</span>"; }).join("") + "</div>";
   }
 
   function switchTab(name, state) {
