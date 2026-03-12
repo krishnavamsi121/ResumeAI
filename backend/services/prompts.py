@@ -33,6 +33,9 @@ SKILLS SECTION:
 - Add JD-required skills demonstrated in the candidate's work history (including via equivalent tools).
 - Group skills to mirror how the JD categorizes them.
 - Remove or de-emphasize technologies the JD shows no interest in if space is needed.
+- Do not append skills using pipe '|' and mention each skill separately in format "Category: Skill1, Skill2, etc."
+- Ensure the final skills section looks like something the candidate could have naturally written, not a laundry list of keywords.
+- Remove '(' and ')' from skill names to improve ATS parsing, e.g. "AWS (S3, Lambda)" becomes "AWS S3", "AWS Lambda".
 
 EXPERIENCE SECTION:
 - For each role, translate tool names to JD equivalents where the underlying work is the same.

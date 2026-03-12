@@ -264,14 +264,12 @@ a { color: #6366F1; text-decoration: none; }
 .rf-bullets   { padding-left: 20px; list-style-type: disc; margin-bottom: 13px;}
 .rf-bullets li { font-size: 13px; margin-bottom: 3px; line-height: 1.55; list-style-type: disc; }
 .rf-paragraph { font-size: 13px; line-height: 1.65; }
-.rf-skills-grid { display: flex; flex-wrap: wrap; gap: 5px; }
 .rf-skill-category {
   display: flex;
   flex-wrap: wrap;
   align-items: baseline;
   gap: 5px;
-  margin-bottom: 8px;
-  row-gap: 5px;
+  margin-bottom: 6px;
 }
 .rf-skill-cat-label {
   font-size: 12px;
@@ -279,11 +277,6 @@ a { color: #6366F1; text-decoration: none; }
   color: #5A6070;
   white-space: nowrap;
   flex-shrink: 0;
-}
-.rf-skill-chip {
-  font-size: 11.5px; padding: 3px 9px; border-radius: 20px;
-  background: #EEEEFF; border: 1px solid #C4C6FD;
-  color: #6366F1; font-weight: 500;
 }
 
 /* Change entries (review.js) */

@@ -165,22 +165,22 @@
           var colonIdx = line.indexOf(":");
           var cat = line.slice(0, colonIdx).trim();
           var skillsStr = line.slice(colonIdx + 1).trim();
-          var skills = skillsStr.split(/[,]/).filter(function (s) { return s.trim(); });
+          var skills = skillsStr.split(/[,]/).map(function (s) { return s.trim(); }).filter(Boolean);
           html += '<div class="rf-skill-category">' +
                   '<span class="rf-skill-cat-label">' + utils.esc(cat) + ':</span> ' +
-                  skills.map(function (s) { return '<span class="rf-skill-chip">' + utils.esc(s.trim()) + '</span>'; }).join('') +
+                  '<span class="rf-paragraph">' + utils.esc(skills.join(", ")) + '</span>' +
                   '</div>';
         } else {
-          var sks = line.split(/[,]/).filter(function (s) { return s.trim(); });
+          var sks = line.split(/[,]/).map(function (s) { return s.trim(); }).filter(Boolean);
           html += '<div class="rf-skill-category">' +
-                  sks.map(function (s) { return '<span class="rf-skill-chip">' + utils.esc(s.trim()) + '</span>'; }).join('') +
+                  '<span class="rf-paragraph">' + utils.esc(sks.join(", ")) + '</span>' +
                   '</div>';
         }
       }
       return html;
     }
-    var chips = t.split(/[,\n•]/).map(function (s) { return s.trim(); }).filter(Boolean);
-    return '<div class="rf-skills-grid">' + chips.map(function (s) { return '<span class="rf-skill-chip">' + utils.esc(s) + "</span>"; }).join("") + "</div>";
+    var skills = t.split(/[,\n•]/).map(function (s) { return s.trim(); }).filter(Boolean);
+    return '<div class="rf-paragraph">' + utils.esc(skills.join(", ")) + "</div>";
   }
 
   function switchTab(name, state) {
